@@ -19,8 +19,6 @@ import java.util.regex.Pattern;
 
 import org.apache.wicket.Application;
 import org.apache.wicket.Component;
-import org.apache.wicket.Resource;
-import org.apache.wicket.ResourceReference;
 import org.apache.wicket.SharedResources;
 import org.apache.wicket.WicketRuntimeException;
 import org.apache.wicket.markup.ComponentTag;
@@ -29,7 +27,8 @@ import org.apache.wicket.markup.html.image.resource.RenderedDynamicImageResource
 import org.apache.wicket.model.IComponentInheritedModel;
 import org.apache.wicket.model.IModel;
 import org.apache.wicket.model.IWrapModel;
-import org.apache.wicket.protocol.http.WebResponse;
+import org.apache.wicket.request.http.WebResponse;
+import org.apache.wicket.request.resource.ResourceReference;
 import org.apache.wicket.util.string.Strings;
 
 /*
@@ -215,7 +214,7 @@ public class RenderedLabel extends Image  {
 		for (Component current = getParent(); current != null; current = current.getParent())
 		{
 			// Get model
-			// Dont call the getModel() that could initialize many inbetween completely useless models. 
+			// Dont call the getModel() that could initialize many inbetween completely useless models.
 			//IModel model = current.getModel();
 			IModel model = current.getDefaultModel();
 
@@ -301,7 +300,7 @@ public class RenderedLabel extends Image  {
 			super(1, 1,"png");	// tiny default that will resize to fit text
 			setType(BufferedImage.TYPE_INT_ARGB); // allow alpha transparency
 		}
-		
+
 		@Override
 		protected void setHeaders(WebResponse response) {
 			// don't set expire headers; if resource changes, its URL will change
@@ -317,12 +316,13 @@ public class RenderedLabel extends Image  {
 			invalidate();
 		}
 
-        /** 
+        /**
          * Renders text into image. Will increase dimensions and return false if needed to accomodate
          * text. Neither dimension will be decreased, unless the text in blank. Blank text is rendered
          * as a 1 x 1 pixel square, with prior dimensions discarded.
          */
-		protected boolean render(final Graphics2D graphics)
+		@Override
+    protected boolean render(final Graphics2D graphics)
 		{
 			final int width = getWidth(), height = getHeight();
 
@@ -331,7 +331,7 @@ public class RenderedLabel extends Image  {
 				graphics.setColor(backgroundColor);
 				graphics.fillRect(0, 0, width, height);
 			}
-			
+
 			List<AttributedCharacterIterator> attributedLines = getAttributedLines();
 
 			// render as a 1x1 pixel if text is empty
@@ -342,10 +342,10 @@ public class RenderedLabel extends Image  {
 				setHeight(1);
 				return false;
 			}
-			
+
 			graphics.setFont(font);
 			FontMetrics fontMetrics = graphics.getFontMetrics();
-			
+
 			List<TextLayout> layouts = new LinkedList<TextLayout>();
 
 			float neededWidth = 0f;
@@ -366,10 +366,10 @@ public class RenderedLabel extends Image  {
 					}
 				}
 			}
-			
+
 			float lineHeight = graphics.getFontMetrics().getHeight(),
 				neededHeight = layouts.size() * lineHeight;
-			
+
 			if (neededWidth > width || neededHeight > height) {
                 setWidth(Math.max((int)Math.ceil(neededWidth), width));
                 setHeight(Math.max((int)Math.ceil(neededHeight), height));
@@ -379,7 +379,7 @@ public class RenderedLabel extends Image  {
 			graphics.setRenderingHint(RenderingHints.KEY_ANTIALIASING,
 					antiAliased ? RenderingHints.VALUE_ANTIALIAS_ON : RenderingHints.VALUE_ANTIALIAS_OFF);
 			graphics.setColor(color);
-			
+
 			float y = lineHeight - fontMetrics.getMaxDescent();
 			for (TextLayout layout : layouts) {
 				layout.draw(graphics, 0f, y);
@@ -397,7 +397,7 @@ public class RenderedLabel extends Image  {
 			attributedText.addAttribute(TextAttribute.FONT, font);
 			return splitAtNewlines(attributedText, text);
 		}
-		
+
 		static List<AttributedCharacterIterator> splitAtNewlines(AttributedString attr, String plain) {
 			List<AttributedCharacterIterator> lines = new LinkedList<AttributedCharacterIterator>();
 			Pattern nl = Pattern.compile("\n");
@@ -409,7 +409,7 @@ public class RenderedLabel extends Image  {
 			}
 			lines.add(attr.getIterator(null, last, plain.length()));
 			return lines;
-			
+
 		}
 
 		/**

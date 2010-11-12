@@ -14,13 +14,15 @@ import org.apache.wicket.model.IModel;
  * @author Nathan Hamblen
  */
 public class FontFormattedRenderedLabel extends RenderedLabel {
-	private Font italicFont = getFont().deriveFont(Font.ITALIC);
+  private static final long serialVersionUID = 1L;
+
+  private Font italicFont = getFont().deriveFont(Font.ITALIC);
 	private Font boldFont = getFont().deriveFont(Font.BOLD);
 
 	public FontFormattedRenderedLabel(String id) {
 		super(id);
 	}
-	
+
 	public FontFormattedRenderedLabel(String id, IModel model) {
 		super(id, model);
 	}
@@ -28,11 +30,11 @@ public class FontFormattedRenderedLabel extends RenderedLabel {
 	public FontFormattedRenderedLabel(String id, boolean shareResource) {
 		super(id, shareResource);
 	}
-	
+
 	public FontFormattedRenderedLabel(String id, IModel model, boolean shareResource) {
 		super(id, model, shareResource);
 	}
-	
+
 	public static void loadSharedResources(String text, Font font, Font boldFont, Font italicFont, Color color, Color backgroundColor, Integer maxWidth) {
 		loadSharedResources(new FontFormattedRenderedImageResource(), text, font, boldFont, italicFont, color, backgroundColor, maxWidth);
 	}
@@ -42,8 +44,9 @@ public class FontFormattedRenderedLabel extends RenderedLabel {
 		res.italicFont = italicFont;
 		RenderedLabel.loadSharedResources(res, text, font, color, backgroundColor, maxWidth);
 	}
-	
-	protected FontFormattedRenderedImageResource newRenderedTextImageResource(boolean isShared) {
+
+	@Override
+  protected FontFormattedRenderedImageResource newRenderedTextImageResource(boolean isShared) {
 		FontFormattedRenderedImageResource res = new FontFormattedRenderedImageResource();
 		res.setCacheable(isShared);
 		res.setState(this);
@@ -62,7 +65,7 @@ public class FontFormattedRenderedLabel extends RenderedLabel {
 			italicFont = ffLabel.getItalicFont();
 			super.setState(label);
 		}
-	
+
 		@Override
 		void attributeBold(AttributedString string, int start, int end) {
 			string.addAttribute(TextAttribute.FONT, boldFont, start, end);
@@ -74,11 +77,11 @@ public class FontFormattedRenderedLabel extends RenderedLabel {
 		/** Renders as underlined plain-weight text in Color.BLUE; override for other attributes. */
 		@Override
 		void attributeLink(AttributedString string, int start, int end) {
-			string.addAttribute(TextAttribute.UNDERLINE,TextAttribute.UNDERLINE_ON, start, end); 
-			string.addAttribute(TextAttribute.FOREGROUND,Color.BLUE, start, end); 
+			string.addAttribute(TextAttribute.UNDERLINE,TextAttribute.UNDERLINE_ON, start, end);
+			string.addAttribute(TextAttribute.FOREGROUND,Color.BLUE, start, end);
 		}
 	}
-	
+
 	public Font getItalicFont() {
 		return italicFont;
 	}
