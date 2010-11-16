@@ -21,98 +21,53 @@ package net.databinder.models.hib;
 * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
  ---*/
 
-import java.io.Serializable;
-import java.util.HashSet;
-import java.util.Set;
-
 import org.apache.wicket.extensions.markup.html.repeater.data.sort.ISortState;
 import org.apache.wicket.extensions.markup.html.repeater.data.sort.ISortStateLocator;
 import org.apache.wicket.extensions.markup.html.repeater.util.SingleSortState;
 import org.apache.wicket.extensions.markup.html.repeater.util.SortParam;
 import org.hibernate.Criteria;
-import org.hibernate.criterion.CriteriaSpecification;
 import org.hibernate.criterion.Order;
 
 /**
- * Abstract base class for building OrderedCriteriaBuilders. It handles the sorting.
- * Subclasses should call super.buildUnordered() when overriding.
- * 
- * Avoids problems with duplicate Aliases by having all the Criteria building code in one location.
+ * Abstract base class for building OrderedCriteriaBuilders. Uses an ISortStateLocator to configure
+ * the sorting.  Subclasses should call super.buildUnordered() when overriding.
  * 
  * @author Mark Southern
  */
-public abstract class CriteriaBuildAndSort implements ISortStateLocator, OrderingCriteriaBuilder, Serializable {
+public abstract class CriteriaBuildAndSort extends BaseCriteriaBuildAndSort implements ISortStateLocator {
+	private SingleSortState sortState = new SingleSortState();
 
-    private Set<String> aliases = new HashSet<String>();
+	public CriteriaBuildAndSort(final String defaultSortProperty, final boolean sortAscending, final boolean sortCased) {
+		super(defaultSortProperty, sortAscending, sortCased);
+	}
 
-    private SingleSortState sortState = new SingleSortState();
+	@Override
+	public void buildOrdered(final Criteria criteria) {
+		buildUnordered(criteria);
 
-    private String defaultSortProperty = null;
+		SortParam sort = sortState.getSort();
+		String property;
+		if (sort != null && sort.getProperty() != null) {
+			property = sort.getProperty();
+			sortAscending = sort.isAscending();
+		}
+		else {
+			property = defaultSortProperty;
+		}
 
-    boolean sortAscending, sortCased;
+		if (property != null) {
+			property = processProperty(criteria, property);
+			Order order = sortAscending ? Order.asc(property) : Order.desc(property);
+			order = sortCased ? order : order.ignoreCase();
+			criteria.addOrder(order);
+		}
+	}
 
-    public CriteriaBuildAndSort(String defaultSortProperty, boolean sortAscending, boolean sortCased) {
-        this.defaultSortProperty = defaultSortProperty;
-        this.sortAscending = sortAscending;
-        this.sortCased = sortCased;
-    }
+	public ISortState getSortState() {
+		return sortState;
+	}
 
-    protected String processProperty(Criteria criteria, String property) {
-        if (property.contains(".")) {
-            // for 'dot' properties we need to add aliases
-            // e.g. for the property 'orderbook.order.item.name' we need to add an aliases for 'order' and 'order.item'
-            String path[] = property.split("\\.");
-            for (int ii = 0; ii < path.length - 1; ii++) {
-                StringBuffer sb = new StringBuffer();
-                for (int jj = 0; jj <= ii; jj++) {
-                    if (sb.length() > 0)
-                        sb.append(".");
-                    sb.append(path[jj]);
-                }
-                if (!aliases.contains(path[ii])) {
-                    aliases.add(path[ii]);
-                    criteria.createAlias(sb.toString(), path[ii], CriteriaSpecification.LEFT_JOIN);
-                }
-            }
-            // when we have a 'dot' property we want to sort by the sub tables field
-            // e.g. for the property 'orderbook.order.item.name' we need to sort by 'item.name'
-            if (path.length > 1)
-                property = String.format("%s.%s", path[path.length - 2], path[path.length - 1]);
-            else
-                property = path[path.length - 1];
-        }
-        return property;
-    }
-
-    public void buildOrdered(Criteria criteria) {
-        buildUnordered(criteria);
-
-        SortParam sort = sortState.getSort();
-        String property;
-        if (sort != null && sort.getProperty() != null) {
-            property = sort.getProperty();
-            sortAscending = sort.isAscending();
-        }
-        else
-            property = defaultSortProperty;
-
-        if (property != null) {
-            property = processProperty(criteria, property);
-            Order order = sortAscending ? Order.asc(property) : Order.desc(property);
-            order = sortCased ? order : order.ignoreCase();
-            criteria.addOrder(order);
-        }
-    }
-
-    public void buildUnordered(Criteria criteria) {
-        aliases.clear();
-    }
-
-    public ISortState getSortState() {
-        return sortState;
-    }
-
-    public void setSortState(ISortState state) {
-        sortState = (SingleSortState) state;
-    }
+	public void setSortState(final ISortState state) {
+		sortState = (SingleSortState) state;
+	}
 }
