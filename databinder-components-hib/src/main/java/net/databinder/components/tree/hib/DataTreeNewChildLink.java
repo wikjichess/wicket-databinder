@@ -8,20 +8,21 @@ import org.apache.wicket.ajax.markup.html.AjaxLink;
 
 /**
  * Add a new child to the selected tree node.
- * 
+ *
  * @author Thomas Kappler
  */
-public class DataTreeNewChildLink extends AjaxLink {
+public class DataTreeNewChildLink extends AjaxLink<Void> {
+  private static final long serialVersionUID = 1L;
 
 	private DataTree<?> tree;
 	private DefaultMutableTreeNode parentNode;
 
-	public DataTreeNewChildLink(String id, DataTree tree, DefaultMutableTreeNode node) {
+	public DataTreeNewChildLink(String id, DataTree<?> tree, DefaultMutableTreeNode node) {
 		super(id);
 		this.tree = tree;
 		this.parentNode = node;
 	}
-	
+
 	protected DefaultMutableTreeNode getParentNode() {
 		return parentNode;
 	}
@@ -38,8 +39,10 @@ public class DataTreeNewChildLink extends AjaxLink {
 		tree.repaint(target);
 		tree.updateDependentComponents(target, newNode);
 	}
-	
+
 	public static class SingleSelection extends DataTreeNewChildLink {
+	  private static final long serialVersionUID = DataTreeNewChildLink.serialVersionUID;
+
 		private SingleSelectionDataTree<?> tree;
 
 		public SingleSelection(String id, SingleSelectionDataTree<?> tree) {

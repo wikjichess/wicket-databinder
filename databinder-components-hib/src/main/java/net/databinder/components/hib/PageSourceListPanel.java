@@ -14,6 +14,8 @@ import org.apache.wicket.model.IModel;
  * @author Nathan Hamblen
  */
 public class PageSourceListPanel<T> extends SourceListPanel<T> {
+  private static final long serialVersionUID = 1L;
+
 	private Class<? extends Page> pageClass;
 	private String idParameter;
 
@@ -37,7 +39,7 @@ public class PageSourceListPanel<T> extends SourceListPanel<T> {
 	 * @param idParameter identifer passed through this parameter
 	 * @param listModel list of entities to render
 	 */
-	public PageSourceListPanel(String id, Class<? extends Page> page, 
+	public PageSourceListPanel(String id, Class<? extends Page> page,
 			String bodyProperty, String idParameter, IModel<List<T>> listModel ) {
 		super(id, bodyProperty, listModel);
 		this.pageClass = page;
@@ -49,6 +51,7 @@ public class PageSourceListPanel<T> extends SourceListPanel<T> {
 	@Override
 	protected PageSourceLink<T> sourceLink(String id, final IModel<T> model) {
 		PageSourceLink<T> link = new PageSourceLink<T>(id, pageClass, model, idParameter) {
+		  private static final long serialVersionUID = PageSourceListPanel.serialVersionUID;
 			@Override
 			protected void setParameters() {
 				super.setParameters();
@@ -62,5 +65,5 @@ public class PageSourceListPanel<T> extends SourceListPanel<T> {
 	 * always be set before calling this method).
 	 * @param link one link of the list, with model set correspondingly
 	 */
-	protected void setParameters(PageSourceLink link) { }
+	protected void setParameters(PageSourceLink<?> link) { }
 }

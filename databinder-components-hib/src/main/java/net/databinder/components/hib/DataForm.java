@@ -31,19 +31,21 @@ import org.apache.wicket.model.IModel;
 import org.hibernate.Session;
 
 /**
- * Provides default handling for a single {@link HibernateObjectModel} nested 
- * in a {@link CompoundPropertyModel}. This includes saving a new model object to 
- * persistent storage and committing the current transaction when a valid form 
- * is submitted. For forms holding multiple independent persistent objects (when 
- * there is no single parent that cascades saves to the others), subclasses may 
- * override {@link #savePersistentObjectIfNew()} to save all the form's 
- * {@link HibernateObjectModel}s. (Note that automatic {@link #version} tracking 
+ * Provides default handling for a single {@link HibernateObjectModel} nested
+ * in a {@link CompoundPropertyModel}. This includes saving a new model object to
+ * persistent storage and committing the current transaction when a valid form
+ * is submitted. For forms holding multiple independent persistent objects (when
+ * there is no single parent that cascades saves to the others), subclasses may
+ * override {@link #savePersistentObjectIfNew()} to save all the form's
+ * {@link HibernateObjectModel}s. (Note that automatic {@link #version} tracking
  * is only available for the primary model.)
  * <p>For very specialized forms it may be necessary to extend this class's parent,
  * {@link DataFormBase}.</p>
  * @author Nathan Hamblen
  */
 public class DataForm<T> extends DataFormBase<T> {
+  private static final long serialVersionUID = 1L;
+
 	/**
 	 * Retains the persistent object's version field (if it has one) between
 	 * requests to detect editing conflicts between users.
@@ -86,13 +88,13 @@ public class DataForm<T> extends DataFormBase<T> {
 	public DataForm(String id) {
 		super(id);
 	}
-	
+
 	/**
 	 * @param key for the Hibernate session factory to be used with this component
-	 * @return this 
+	 * @return this
 	 */
 	@Override
-	public DataForm setFactoryKey(Object key) {
+	public DataForm<T> setFactoryKey(Object key) {
 		super.setFactoryKey(key);
 		getPersistentObjectModel().setFactoryKey(key);
 		return this;
@@ -101,7 +103,8 @@ public class DataForm<T> extends DataFormBase<T> {
 	/**
 	 * @return the single persistent model for this form
 	 */
-	public HibernateObjectModel<T> getPersistentObjectModel() {
+	@SuppressWarnings("unchecked")
+  public HibernateObjectModel<T> getPersistentObjectModel() {
 		return (HibernateObjectModel<T>) getCompoundModel().getChainedModel();
 	}
 
@@ -110,14 +113,14 @@ public class DataForm<T> extends DataFormBase<T> {
 	 * @param object  to attach to this form
 	 * @return this form, for chaining
 	 */
-	public DataForm setPersistentObject(T object) {
+	public DataForm<T>setPersistentObject(T object) {
 		getPersistentObjectModel().setObject(object);
 		modelChanged();
 		return this;
 	}
-	
+
 	/**
-	 * Updates the internal version number to the actual version number. 
+	 * Updates the internal version number to the actual version number.
 	 * @see #version
 	 */
 	private void updateVersion() {
@@ -131,7 +134,7 @@ public class DataForm<T> extends DataFormBase<T> {
 		if (version == null)
 			updateVersion();
 	}
-	
+
 	/** Calls {@link #updateVersion()} when model changes. */
 	@Override
 	protected void onModelChanged() {
@@ -144,23 +147,23 @@ public class DataForm<T> extends DataFormBase<T> {
 	 * @see HibernateObjectModel#unbind()
 	 * @return this form, for chaining
 	 */
-	public DataForm clearPersistentObject() {
+	public DataForm<T> clearPersistentObject() {
 		getPersistentObjectModel().unbind();
 		modelChanged();
 		return this;
 	}
 
-	/** 
+	/**
 	 * @return the effective compound model for this form, which may be
 	 * attached to a parent component
 	 */
-	protected CompoundPropertyModel getCompoundModel() {
-		IModel model = getModel();
+	protected CompoundPropertyModel<?> getCompoundModel() {
+		IModel<?> model = getModel();
 		Component cur = this;
 		while (cur != null) {
 			model = cur.getDefaultModel();
 			if (model != null && model instanceof CompoundPropertyModel)
-				return (CompoundPropertyModel) model;
+				return (CompoundPropertyModel<?>) model;
 			cur = cur.getParent();
 		}
 		throw new WicketRuntimeException("DataForm has no parent compound model");
@@ -171,10 +174,10 @@ public class DataForm<T> extends DataFormBase<T> {
 	protected void onSubmit() {
 		commitFormIfValid();
 	}
-	
+
 	/**
-	 * Commits a valid form's data to persistent storage. If no errors are 
-	 * registered for any form component, this method calls 
+	 * Commits a valid form's data to persistent storage. If no errors are
+	 * registered for any form component, this method calls
 	 * {@link #savePersistentObjectIfNew()}
 	 * {@link #commitTransactionIfValid()}, and {@link #updateVersion()}.
 	 * @return true if committed
@@ -191,12 +194,12 @@ public class DataForm<T> extends DataFormBase<T> {
 		}
 		return false;
 	}
-	
+
 	/**
 	 * Saves persistent model object if it is not already contained in the session.
 	 * If the a sub-class is responsible for more than one {@link HibernateObjectModel},
-	 * it may override to call {@link #saveIfNew(HibernateObjectModel)} on each.  
-	 * @return true if object was newly saved 
+	 * it may override to call {@link #saveIfNew(HibernateObjectModel)} on each.
+	 * @return true if object was newly saved
 	 */
 	protected boolean savePersistentObjectIfNew() {
 		return saveIfNew(getPersistentObjectModel());
@@ -204,7 +207,7 @@ public class DataForm<T> extends DataFormBase<T> {
 
 	/**
 	 * Saves model's entity if it is not already contained in the session.
-	 * @return true if object was newly saved 
+	 * @return true if object was newly saved
 	 */
 	protected boolean saveIfNew(HibernateObjectModel<T> model) {
 		Session session = getHibernateSession();
@@ -218,11 +221,11 @@ public class DataForm<T> extends DataFormBase<T> {
 		}
 		return false;
 	}
-	
+
 	/**
 	 * Called before saving any new object by {@link #saveIfNew(HibernateObjectModel)}.
 	 * This is a good time to make last minute changes to new objects that
-	 * couldn't be easily serialized (adding relationships to existing persistent 
+	 * couldn't be easily serialized (adding relationships to existing persistent
 	 * entities, for example).
 	 * @param generally, the persistent model for this form (but subclasses may also call saveIfNew)
 	 */
@@ -269,12 +272,14 @@ public class DataForm<T> extends DataFormBase<T> {
 		session.flush();
 		return true;
 	}
-	
+
 	/**
 	 * Instances of this nested class call #{@link DataForm#clearPersistentObject()}
 	 * on their instantiating DataForm when clicked.
-	 */ 
-	public class ClearLink extends Link {
+	 */
+	public class ClearLink extends Link<Void> {
+	  private static final long serialVersionUID = DataForm.serialVersionUID;
+
 		public ClearLink(String id) {
 			super(id);
 		}

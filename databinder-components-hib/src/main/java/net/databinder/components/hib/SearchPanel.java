@@ -7,7 +7,6 @@ import net.databinder.models.hib.PropertyQueryBinder;
 import net.databinder.models.hib.QueryBinder;
 
 import org.apache.wicket.MarkupContainer;
-import org.apache.wicket.ResourceReference;
 import org.apache.wicket.ajax.AjaxRequestTarget;
 import org.apache.wicket.ajax.markup.html.AjaxLink;
 import org.apache.wicket.markup.html.form.Form;
@@ -16,6 +15,7 @@ import org.apache.wicket.markup.html.image.Image;
 import org.apache.wicket.markup.html.panel.Panel;
 import org.apache.wicket.model.IModel;
 import org.apache.wicket.model.Model;
+import org.apache.wicket.request.resource.PackageResourceReference;
 import org.hibernate.Criteria;
 import org.hibernate.criterion.Disjunction;
 import org.hibernate.criterion.MatchMode;
@@ -30,26 +30,27 @@ import org.hibernate.criterion.Restrictions;
  * @author Nathan Hamblen
  */
 public abstract class SearchPanel extends Panel {
+  private static final long serialVersionUID = 1L;
 
-	private TextField search;
+	private TextField<String> search;
 
 	/**
 	 * @param id Wicket id
 	 */
 	public SearchPanel(final String id) {
-		super(id, new Model());
+		super(id, new Model<String>());
 		add(new SearchForm("searchForm"));
 	}
 
 	/** Use the given model (must not be read-only ) for the search string */
-	public SearchPanel(final String id, final IModel searchModel) {
+	public SearchPanel(final String id, final IModel<String> searchModel) {
 		super(id, searchModel);
 		add(new SearchForm("searchForm"));
 	}
 
 	@Override
 	/** Sets model to search component. */
-	public MarkupContainer setDefaultModel(final IModel model) {
+	public MarkupContainer setDefaultModel(final IModel<?> model) {
 		return search.setDefaultModel(model);
 	}
 
@@ -93,6 +94,8 @@ public abstract class SearchPanel extends Panel {
 	 */
 	public CriteriaBuilder getCriteriaBuilder(final MatchMode matchMode, final String... searchProperty) {
 		return new CriteriaBuilder() {
+		  private static final long serialVersionUID = SearchPanel.serialVersionUID;
+
 			public void build(final Criteria criteria) {
 				final String search = (String) getDefaultModelObject();
 				if (search != null) {
@@ -118,26 +121,28 @@ public abstract class SearchPanel extends Panel {
   }
 
   /** Form with AJAX components and their AjaxCells. */
-	public class SearchForm extends Form {
-		@SuppressWarnings("unchecked")
+	public class SearchForm extends Form<String> {
+	  private static final long serialVersionUID = SearchPanel.serialVersionUID;
+
 		public SearchForm(final String id) {
 			super(id);
 
 			final AjaxCell searchWrap = new AjaxCell("searchWrap");
 			add(searchWrap);
-			search = new TextField("searchInput", SearchPanel.this.getDefaultModel());
+			search = new TextField<String>("searchInput", SearchPanel.this.getModel());
 			search.setOutputMarkupId(true);
 			searchWrap.add(search);
 
 			final AjaxCell clearWrap = new AjaxCell("clearWrap");
 			add(clearWrap);
-			final AjaxLink clearLink = new AjaxLink("clearLink") {
+			final AjaxLink<Void> clearLink = new AjaxLink<Void>("clearLink") {
+			  private static final long serialVersionUID = SearchPanel.serialVersionUID;
 				/** Clear field and register updates. */
 				@Override
         public void onClick(final AjaxRequestTarget target) {
 					resetSearchModelObject();
-					target.addComponent(searchWrap);
-					target.addComponent(clearWrap);
+					target.add(searchWrap);
+					target.add(clearWrap);
 					onUpdate(target);
 				}
 				/** Hide when search is blank. */
@@ -148,17 +153,25 @@ public abstract class SearchPanel extends Panel {
 			};
 			clearLink.setOutputMarkupId(true);
 			clearLink.add( new Image("clear",
-					new ResourceReference(this.getClass(), "clear.png")));
+					new PackageResourceReference(this.getClass(), "clear.png")));
 			clearWrap.add(clearLink);
 
 			// triggered when user pauses or tabs out
 			search.add(new AjaxOnKeyPausedUpdater() {
-				@Override
+        private static final long serialVersionUID = SearchPanel.serialVersionUID;
+
+        @Override
         protected void onUpdate(final AjaxRequestTarget target) {
-					target.addComponent(clearWrap);
+					target.add(clearWrap);
 					SearchPanel.this.onUpdate(target);
 				}
 			});
 		}
 	}
+
+  @SuppressWarnings("unchecked")
+  public IModel<String> getModel()
+  {
+    return (IModel<String>) getDefaultModel();
+  }
 }

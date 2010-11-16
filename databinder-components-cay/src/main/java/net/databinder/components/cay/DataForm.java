@@ -9,7 +9,9 @@ import org.apache.wicket.model.IChainingModel;
 
 /** Form to be used with a single object, wraps in a compound property model. */
 public class DataForm<T extends DataObject> extends CommittingDataForm<T> {
-	public DataForm(String id, Class<T> cl) {
+  private static final long serialVersionUID = 1L;
+
+  public DataForm(String id, Class<T> cl) {
 		super(id, new CompoundPropertyModel<T>(new DataObjectModel<T>(cl)));
 	}
 	public DataForm(String id, T object) {
@@ -18,7 +20,8 @@ public class DataForm<T extends DataObject> extends CommittingDataForm<T> {
 	public DataForm(String id, ObjectId objectId) {
 		super(id, new CompoundPropertyModel<T>(new DataObjectModel<T>(objectId)));
 	}
-	public DataObjectModel<T> getPersistentObjectModel() {
+	@SuppressWarnings("unchecked")
+  public DataObjectModel<T> getPersistentObjectModel() {
 		return (DataObjectModel<T>) ((IChainingModel<T>)getModel()).getChainedModel();
 	}
 }

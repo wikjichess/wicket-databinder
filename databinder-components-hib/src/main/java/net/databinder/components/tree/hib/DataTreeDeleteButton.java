@@ -20,17 +20,18 @@ import org.hibernate.Session;
  * href="http://java.sun.com/docs/books/tutorial/uiswing/components/tree.html">How
  * to Use Trees</a> tutorial, example DynamicTreeDemo.
  * </p>
- * 
+ *
  * @author Thomas Kappler
- * 
+ *
  * @param <T>
  *            see {@link DataTree}
  */
 public class DataTreeDeleteButton<T extends DataTreeObject<T>> extends AjaxButton {
+  private static final long serialVersionUID = 1L;
 
 	private SingleSelectionDataTree<T> tree;
 	private boolean deleteOnlyLeafs = true;
-	
+
 	public DataTreeDeleteButton(String id, SingleSelectionDataTree<T> tree) {
 		super(id);
 		this.tree = tree;
@@ -45,7 +46,7 @@ public class DataTreeDeleteButton<T extends DataTreeObject<T>> extends AjaxButto
 
 	@Override
 	public boolean isEnabled() {
-		DefaultMutableTreeNode selected = tree.getSelectedTreeNode(); 
+		DefaultMutableTreeNode selected = tree.getSelectedTreeNode();
 		if (selected == null) {
 			return false;
 		}
@@ -55,31 +56,34 @@ public class DataTreeDeleteButton<T extends DataTreeObject<T>> extends AjaxButto
 		if (deleteOnlyLeafs) {
 			return selected.isLeaf();
 		}
-		
+
 		return true;
 	}
 
 	@Override
-	protected void onSubmit(AjaxRequestTarget target, Form form) {
+	protected void onSubmit(AjaxRequestTarget target, Form<?> form) {
 		DefaultMutableTreeNode selectedNode = tree.getSelectedTreeNode();
 		T selected = tree.getSelectedUserObject();
-	
-		DefaultMutableTreeNode parentNode = (DefaultMutableTreeNode) 
+
+		DefaultMutableTreeNode parentNode = (DefaultMutableTreeNode)
 				selectedNode.getParent();
 		T parent = tree.getDataTreeNode(parentNode);
 
 		if (parent != null)
 			parent.getChildren().remove(selected);
 		parentNode.remove(selectedNode);
-		
+
 		Session session = Databinder.getHibernateSession();
 		if (session.contains(selected)) {
 			session.delete(selected);
 			session.getTransaction().commit();
 		}
-		
+
 		tree.getTreeState().selectNode(parentNode, true);
 		tree.repaint(target);
 		tree.updateDependentComponents(target, parentNode);
 	}
+
+  @Override
+  protected void onError(AjaxRequestTarget target, Form<?> form) { }
 }

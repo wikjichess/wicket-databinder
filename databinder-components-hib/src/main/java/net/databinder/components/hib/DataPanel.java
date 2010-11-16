@@ -34,6 +34,7 @@ import org.apache.wicket.model.IChainingModel;
  * @author Nathan Hamblen
  */
 public class DataPanel<T> extends Panel {
+  private static final long serialVersionUID = 1L;
 
 	/**
 	 * Create panel with an existing persistent object model.
@@ -70,7 +71,7 @@ public class DataPanel<T> extends Panel {
 	@SuppressWarnings("unchecked")
 	protected HibernateObjectModel<T> getPersistentObjectModel() {
 		try {
-			return (HibernateObjectModel) ((IChainingModel<T>)getDefaultModel()).getChainedModel();
+			return (HibernateObjectModel<T>) ((IChainingModel<T>)getDefaultModel()).getChainedModel();
 		} catch (ClassCastException c) {
 			throw new RuntimeException("DataPanel's nested model was not a HibernateObjectModel", c);
 		}
@@ -81,7 +82,7 @@ public class DataPanel<T> extends Panel {
 	 * @param object  to attach to this panel
 	 * @return this panel, for chaining
 	 */
-	public DataPanel setPersistentObject(T object) {
+	public DataPanel<T> setPersistentObject(T object) {
 		getPersistentObjectModel().setObject(object);
 		return this;
 	}

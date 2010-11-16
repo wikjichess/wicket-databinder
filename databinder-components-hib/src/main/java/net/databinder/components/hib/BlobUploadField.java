@@ -6,12 +6,12 @@
  * modify it under the terms of the GNU Lesser General Public
  * License as published by the Free Software Foundation; either
  * version 2.1 of the License, or (at your option) any later version.
- * 
+ *
  * This library is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
  * Lesser General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
@@ -21,23 +21,23 @@ package net.databinder.components.hib;
 import java.io.IOException;
 import java.sql.Blob;
 
-import org.hibernate.Hibernate;
-
 import org.apache.wicket.markup.html.form.FormComponentPanel;
 import org.apache.wicket.markup.html.form.upload.FileUploadField;
 import org.apache.wicket.model.IModel;
+import org.hibernate.Hibernate;
 
 /**
- * Extension of FileUploadField optimized for blob resources. This upload field can be 
+ * Extension of FileUploadField optimized for blob resources. This upload field can be
  * bound to an object with a compound property model where the property corresponds
- * to the destination blob setter. This allows for file uploads with no specific code for each 
+ * to the destination blob setter. This allows for file uploads with no specific code for each
  * upload component.
  * @author Nathan Hamblen
  */
 public class BlobUploadField extends FormComponentPanel<Blob> {
-	
-	private FileUploadField uploadField;
-	
+  private static final long serialVersionUID = 1L;
+
+  private FileUploadField uploadField;
+
 	/**
 	 * Costructor to be used with compound property model.
 	 * @param id component id, should resolve to a stream property

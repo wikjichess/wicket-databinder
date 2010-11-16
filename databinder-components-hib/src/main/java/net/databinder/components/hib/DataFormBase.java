@@ -14,6 +14,8 @@ import org.hibernate.StaleObjectStateException;
  * @author Nathan Hamblen
  */
 public class DataFormBase<T> extends Form<T> {
+  private static final long serialVersionUID = 1L;
+
 	private Object factoryKey;
 	public DataFormBase(String id) {
 		super(id);
@@ -22,28 +24,29 @@ public class DataFormBase<T> extends Form<T> {
 	{
 		super(id, model);
 	}
-	
+
 	public Object getFactoryKey() {
 		return factoryKey;
 	}
 
-	public DataFormBase setFactoryKey(Object key) {
+	public DataFormBase<T> setFactoryKey(Object key) {
 		this.factoryKey = key;
 		return this;
 	}
-	
+
 	protected Session getHibernateSession() {
 		return Databinder.getHibernateSession(factoryKey);
 	}
-	
+
 	/** Default implementation calls {@link #commitTransactionIfValid()}. */
-	protected void onSubmit() {
+	@Override
+  protected void onSubmit() {
 		commitTransactionIfValid();
 	}
-	
+
 	/**
 	 * Commit transaction if no errors are registered for any form component.
-	 * @return true if transaction was committed 
+	 * @return true if transaction was committed
 	 */
 	protected boolean commitTransactionIfValid() {
 		try {
@@ -60,7 +63,7 @@ public class DataFormBase<T> extends Form<T> {
 		}
 		return false;
 	}
-	
+
 	/** Called before committing a transaction by {@link #commitTransactionIfValid()}. */
 	protected void onBeforeCommit() { };
 

@@ -7,10 +7,11 @@ import org.apache.wicket.ajax.markup.html.AjaxLink;
 
 /**
  * Expand all tree nodes.
- * 
+ *
  * @author Thomas Kappler
  */
-public class DataTreeExpandAllLink extends AjaxLink {
+public class DataTreeExpandAllLink extends AjaxLink<Void> {
+  private static final long serialVersionUID = 1L;
 
 	private DataTree<?> tree;
 

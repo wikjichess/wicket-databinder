@@ -26,9 +26,7 @@ import org.apache.wicket.model.IModel;
  * if invisible by default. Handy for targets of ajax event handlers.
  * @author Nathan Hamblen
  *
- * @deprecated Use of this class is discuraged. Simply call setOutputMarkupPlaceholderTag
  */
-@Deprecated
 public class AjaxCell extends WebMarkupContainer {
   private static final long serialVersionUID = 1L;
 

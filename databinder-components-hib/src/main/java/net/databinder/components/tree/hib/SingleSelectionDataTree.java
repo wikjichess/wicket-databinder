@@ -15,20 +15,21 @@ import org.apache.wicket.markup.html.tree.ITreeState;
 /**
  * A {@link DataTree} in single selection mode (see {@link ITreeState}), with
  * methods to retrieve the selected node or its backing object.
- * 
+ *
  * @author Thomas Kappler
- * 
+ *
  * @param <T>
  *            see {@link DataTree}
  */
 public abstract class SingleSelectionDataTree<T extends DataTreeObject<T>> extends DataTree<T> {
+  private static final long serialVersionUID = 1L;
 
-	public SingleSelectionDataTree(String id, HibernateObjectModel rootModel) {
+	public SingleSelectionDataTree(String id, HibernateObjectModel<T> rootModel) {
 		super(id, rootModel);
 		getTreeState().setAllowSelectMultiple(false);
 	}
-	
-	public SingleSelectionDataTree(String id, HibernateListModel childrenModel) {
+
+	public SingleSelectionDataTree(String id, HibernateListModel<T> childrenModel) {
 		super(id, childrenModel);
 		getTreeState().setAllowSelectMultiple(false);
 	}
@@ -36,24 +37,23 @@ public abstract class SingleSelectionDataTree<T extends DataTreeObject<T>> exten
 	/**
 	 * Depends on the tree disallowing multiple selection, which we
 	 * configured in the constructor.
-	 * 
+	 *
 	 * @return the currently selected tree node if any, else null
 	 */
 	public DefaultMutableTreeNode getSelectedTreeNode() {
-		@SuppressWarnings("unchecked")
-		Collection<Object> selectedNodes = 
+		Collection<Object> selectedNodes =
 				getTreeState().getSelectedNodes();
 		if (selectedNodes.isEmpty()) {
 			return null;
 		}
-		DefaultMutableTreeNode selected = (DefaultMutableTreeNode) 
+		DefaultMutableTreeNode selected = (DefaultMutableTreeNode)
 				selectedNodes.iterator().next();
 		return selected;
 	}
-	
+
 	/**
-	 * Return the currently selected user object (of type T). 
-	 * 
+	 * Return the currently selected user object (of type T).
+	 *
 	 * @return the one currently selected T if any, else null
 	 */
 	public T getSelectedUserObject() {

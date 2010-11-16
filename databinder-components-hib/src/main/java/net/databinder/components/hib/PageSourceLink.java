@@ -10,7 +10,9 @@ import org.apache.wicket.model.IModel;
  * Boomarkable link with object identifier set automatically from the attached object.
  * @author Nathan Hamblen
  */
-public class PageSourceLink<T> extends BookmarkablePageLink {
+public class PageSourceLink<T> extends BookmarkablePageLink<T> {
+  private static final long serialVersionUID = 1L;
+
 	private String idParameter;
 	/**
 	 * Construct a link to a page using the model object's Hibernate identifier set to the
@@ -31,7 +33,6 @@ public class PageSourceLink<T> extends BookmarkablePageLink {
 	 * @param model model to bind to component
 	 * @param idParameter name for identifying parameter
 	 */
-	@SuppressWarnings("unchecked")
 	public <C extends Page> PageSourceLink(String id, Class<C> pageClass, IModel<T> model, String idParameter) {
 		super(id, pageClass);
 		setModel(model);
@@ -56,7 +57,7 @@ public class PageSourceLink<T> extends BookmarkablePageLink {
 	}
 	/** Sets the id parameter to  the identifier given by Hibernate*/
 	protected void setParameters() {
-		setParameter(idParameter, 
+		setParameter(idParameter,
 				Databinder.getHibernateSession().getIdentifier(getModelObject()).toString());
 	}
 }

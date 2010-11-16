@@ -7,14 +7,16 @@ import org.apache.wicket.model.IModel;
 
 /** Form that commits the current context in onSubmit() */
 public class CommittingDataForm<T> extends Form<T> {
-	public CommittingDataForm(String id) {
+  private static final long serialVersionUID = 1L;
+
+  public CommittingDataForm(String id) {
 		super(id);
 	}
-	
+
 	public CommittingDataForm(String id, IModel<T> model) {
 		super(id, model);
 	}
-	
+
 	/** Base implementation commits current context. */
 	@Override
 	protected void onSubmit() {
