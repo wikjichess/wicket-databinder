@@ -7,34 +7,35 @@ import jtextile.JTextile;
 import org.apache.wicket.markup.html.basic.Label;
 import org.apache.wicket.model.IModel;
 import org.apache.wicket.util.convert.IConverter;
-import org.apache.wicket.util.convert.converters.AbstractConverter;
+import org.apache.wicket.util.convert.converter.AbstractConverter;
 
 /**
  * Filters its model through JTextile before rendering.
  * @see jtextile.JTextile
  * @author Nathan Hamblen
  */
-public class TextileLabel extends Label {	
+public class TextileLabel extends Label {
+  private static final long serialVersionUID = 1L;
+
 	/**
 	 * @param id Wicket id
 	 */
 	public TextileLabel(String id) {
 		super(id);
 		setEscapeModelStrings(false); // since the contents will be in HTML
-	}	
-	
+	}
+
 	/**
 	 * @param id Wicket id
 	 * @param model String model
 	 */
-	public TextileLabel(String id, IModel model) {
+	public TextileLabel(String id, IModel<?> model) {
 		super(id, model);
 		setEscapeModelStrings(false); // since the contents will be in HTML
 	}
-	
-	@SuppressWarnings("unchecked")
+
 	@Override
-	public IConverter getConverter(Class type) {
+	public IConverter getConverter(Class<?> type) {
 		return new TextileConverter();
 	}
 
@@ -43,8 +44,10 @@ public class TextileLabel extends Label {
 	 * @see jtextile.JTextile
 	 */
 	protected static class TextileConverter extends AbstractConverter {
+	  private static final long serialVersionUID = TextileLabel.serialVersionUID;
+
 		@Override
-		protected Class getTargetType() {
+		protected Class<String> getTargetType() {
 			return String.class;
 		}
 		@Override

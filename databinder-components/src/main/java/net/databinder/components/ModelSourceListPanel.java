@@ -8,11 +8,13 @@ import org.apache.wicket.model.IModel;
 
 /**
  * Displays a list of links to set the model of a target component. The panel renders to an
- * unordered list of class <tt>source-list</tt>. 
+ * unordered list of class <tt>source-list</tt>.
  * @author Nathan Hamblen
  */
 public class ModelSourceListPanel<T> extends SourceListPanel<T> {
-	private Component target;
+  private static final long serialVersionUID = 1L;
+
+  private Component target;
 	/**
 	 * Creates list panel.
 	 * @param id component id
@@ -29,17 +31,19 @@ public class ModelSourceListPanel<T> extends SourceListPanel<T> {
 	@Override
 	protected Link<T> sourceLink(String id, IModel<T> model) {
 		return new ModelSourceLink<T>("link", target, model) {
-			@Override
+      private static final long serialVersionUID = ModelSourceListPanel.serialVersionUID;
+
+      @Override
 			public void onClick() {
 				ModelSourceListPanel.this.onClick(this);
 				super.onClick();
 			}
 		};
 	}
-	
+
 	/**
 	 * Called before the default ModelSourceLink's onClick. Base impl does nothing.
 	 * @param link component that was clicked
 	 */
-	protected void onClick(ModelSourceLink link) { }
+	protected void onClick(ModelSourceLink<T> link) { }
 }

@@ -12,8 +12,10 @@ import org.apache.wicket.markup.html.link.Link;
  * @see BindingModel
  */
 public class UnbindLink<T> extends Link<T> {
-	private Component target;
-	
+  private static final long serialVersionUID = 1L;
+
+  private Component target;
+
 	/**
 	 * @param id this component id
 	 * @param target component to be notified when unbinding model

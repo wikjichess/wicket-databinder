@@ -6,12 +6,12 @@
  * modify it under the terms of the GNU Lesser General Public
  * License as published by the Free Software Foundation; either
  * version 2.1 of the License, or (at your option) any later version.
- * 
+ *
  * This library is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
  * Lesser General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
@@ -34,7 +34,9 @@ import org.apache.wicket.model.PropertyModel;
  * @author Mark Southern
  */
 public class ObjectFilteredPropertyColumn<T, Y> extends ChoiceFilteredPropertyColumn<T, Y> {
-	private ChoiceRenderer<Y> choiceRenderer;
+  private static final long serialVersionUID = 1L;
+
+  private ChoiceRenderer<Y> choiceRenderer;
 	private String displayProperty;
 
 	public ObjectFilteredPropertyColumn(IModel<String> displayModel, String sortProperty, String displayProperty, String propertyExpression, String filterLabelProperty, IModel<List<? extends Y>> filterChoices) {
@@ -43,16 +45,20 @@ public class ObjectFilteredPropertyColumn<T, Y> extends ChoiceFilteredPropertyCo
 		this.displayProperty = displayProperty;
 	}
 
-	protected IChoiceRenderer<Y> getChoiceRenderer() {
+	@Override
+  protected IChoiceRenderer<Y> getChoiceRenderer() {
 		return choiceRenderer;
 	}
 
-	protected IModel createLabelModel(IModel embeddedModel) {
-		return new PropertyModel(embeddedModel, displayProperty);
+	@Override
+  protected IModel<T> createLabelModel(IModel<T> embeddedModel) {
+		return new PropertyModel<T>(embeddedModel, displayProperty);
 	}
 
-	public Component getFilter(String componentId, FilterForm form) {
-		ChoiceFilter cf = (ChoiceFilter) super.getFilter(componentId, form);
+	@SuppressWarnings("unchecked")
+  @Override
+  public Component getFilter(String componentId, FilterForm form) {
+		ChoiceFilter<Y> cf = (ChoiceFilter<Y>) super.getFilter(componentId, form);
 		cf.getChoice().setNullValid(true);
 		return cf;
 	}

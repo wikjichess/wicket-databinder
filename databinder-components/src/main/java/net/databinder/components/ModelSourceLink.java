@@ -9,7 +9,9 @@ import org.apache.wicket.model.IModel;
  * @author Nathan Hamblen
  */
 public class ModelSourceLink<T> extends Link<T> {
-	private Component target;
+  private static final long serialVersionUID = 1L;
+
+  private Component target;
 	/**
 	 * Construct link to set model of component.
 	 * @param id component id
@@ -23,9 +25,9 @@ public class ModelSourceLink<T> extends Link<T> {
 	/** return false when model is already set to target and is visible */
 	@Override
 	public boolean isEnabled() {
-		if (!target.isVisible()) 
+		if (!target.isVisible())
 			return true;
-		
+
 		return !getModelObject().equals(target.getDefaultModelObject());
 	}
 	/**

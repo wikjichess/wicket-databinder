@@ -9,25 +9,24 @@ import java.awt.font.LineBreakMeasurer;
 import java.awt.font.TextAttribute;
 import java.awt.font.TextLayout;
 import java.awt.image.BufferedImage;
-import java.io.InputStream;
 import java.text.AttributedCharacterIterator;
 import java.text.AttributedString;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Locale;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import org.apache.wicket.Application;
 import org.apache.wicket.Component;
 import org.apache.wicket.SharedResources;
-import org.apache.wicket.WicketRuntimeException;
 import org.apache.wicket.markup.ComponentTag;
 import org.apache.wicket.markup.html.image.Image;
 import org.apache.wicket.markup.html.image.resource.RenderedDynamicImageResource;
 import org.apache.wicket.model.IComponentInheritedModel;
 import org.apache.wicket.model.IModel;
 import org.apache.wicket.model.IWrapModel;
-import org.apache.wicket.request.http.WebResponse;
+import org.apache.wicket.request.resource.IResource;
 import org.apache.wicket.request.resource.ResourceReference;
 import org.apache.wicket.util.string.Strings;
 
@@ -73,6 +72,27 @@ public class RenderedLabel extends Image  {
 	private static Color defaultColor = Color.BLACK;
 	private static Color defaultBackgroundColor = Color.WHITE;
 
+  static class SimpleStaticResourceReference extends ResourceReference
+  {
+    final IResource resource;
+
+    public SimpleStaticResourceReference(Class<?> scope, String name,
+        Locale locale, String style, String variation, IResource resource)
+    {
+      super(scope, name, locale, style, variation);
+      this.resource = resource;
+    }
+
+    private static final long serialVersionUID = 1L;
+
+    @Override
+    public IResource getResource()
+    {
+      return resource;
+    }
+
+  };
+
 	private Font font = defaultFont;
 	private Color color = defaultColor;
 	private Color backgroundColor = defaultBackgroundColor;
@@ -84,7 +104,7 @@ public class RenderedLabel extends Image  {
 	/** Hash of the most recently displayed label attributes. -1 is initial value, 0 for blank labels. */
 	private int labelHash = -1;
 
-	private RenderedTextImageResource resource;
+	private ResourceReference resource;
 
 	/**
 	 * Constructor to be used if model is derived from a compound property model.
@@ -111,7 +131,7 @@ public class RenderedLabel extends Image  {
 	 * @param id Wicket id
 	 * @param model model for
 	 */
-	public RenderedLabel(String id, IModel model) {
+	public RenderedLabel(String id, IModel<?> model) {
 		super(id, model);
 		init();
 	}
@@ -122,7 +142,7 @@ public class RenderedLabel extends Image  {
 	 * @param model model for
 	 * @param shareResource true to add to shared resource pool
 	 */
-	public RenderedLabel(String id, IModel model, boolean shareResource) {
+	public RenderedLabel(String id, IModel<?> model, boolean shareResource) {
 		this(id, model);
 		this.isShared = shareResource;
 		init();
@@ -137,27 +157,26 @@ public class RenderedLabel extends Image  {
 	protected void onBeforeRender() {
 		super.onBeforeRender();
 		int curHash = getLabelHash();
+		String hash = Integer.toHexString(curHash);
 		if (isShared) {
 			if (labelHash != curHash) {
-				String hash = Integer.toHexString(curHash);
 				SharedResources shared = getApplication().getSharedResources();
-				try { resource = (RenderedTextImageResource) shared.get(RenderedLabel.class, hash, null, null, false); }
-				catch (ClassCastException e) {
-					 // was placeholder for missing PackageResourceReference
-					shared.remove(shared.resourceKey(RenderedLabel.class, hash, null, null));
+				resource = shared.get(RenderedLabel.class, hash, null, null, null, false);
+				if (resource == null) {
+					shared.add(RenderedLabel.class, hash, null, null, null, newRenderedTextImageResource(true));
+					resource = shared.get(RenderedLabel.class, hash, null, null, null, false);
 				}
-				if (resource == null)
-					shared.add(RenderedLabel.class, hash, null, null,
-							resource = newRenderedTextImageResource(true));
-				setImageResourceReference(new ResourceReference(RenderedLabel.class, hash));
+				setImageResourceReference(resource);
 			}
 		} else {
-			if (resource == null)
-				setImageResource(resource = newRenderedTextImageResource(false));
+			if (resource == null) {
+			  resource = new SimpleStaticResourceReference(RenderedLabel.class, hash, null, null, null,
+			      newRenderedTextImageResource(false));
+				setImageResourceReference(resource);
+			}
 			else if (labelHash != curHash)
-				resource.setState(this);
+				((RenderedTextImageResource) resource.getResource()).setState(this);
 		}
-		resource.setCacheable(isShared);
 		labelHash = getLabelHash();
 	}
 
@@ -184,10 +203,11 @@ public class RenderedLabel extends Image  {
 
 			tag.put("src", url);
 		}
-		resource.preload();
+		RenderedTextImageResource res = (RenderedTextImageResource) resource.getResource();
+		res.preload();
 
-		tag.put("width", resource.getWidth() );
-		tag.put("height", resource.getHeight() );
+		tag.put("width", res.getWidth() );
+		tag.put("height", res.getHeight() );
 
 		tag.put("alt", getDefaultModelObjectAsString());
 	}
@@ -216,11 +236,11 @@ public class RenderedLabel extends Image  {
 			// Get model
 			// Dont call the getModel() that could initialize many inbetween completely useless models.
 			//IModel model = current.getModel();
-			IModel model = current.getDefaultModel();
+			IModel<?> model = current.getDefaultModel();
 
 			if (model instanceof IWrapModel)
 			{
-				model = ((IWrapModel)model).getWrappedModel();
+				model = ((IWrapModel<?>)model).getWrappedModel();
 			}
 
 			if (model instanceof IComponentInheritedModel)
@@ -231,7 +251,7 @@ public class RenderedLabel extends Image  {
 				setVersioned(false);
 
 				// return the shared inherited
-				model = ((IComponentInheritedModel)model).wrapOnInheritance(this);
+				model = ((IComponentInheritedModel<?>)model).wrapOnInheritance(this);
 				return model;
 			}
 		}
@@ -258,7 +278,6 @@ public class RenderedLabel extends Image  {
 	 * Utility method to load a specific instance of a the rendering shared resource.
 	 */
 	protected static void loadSharedResources(RenderedTextImageResource res, String text, Font font, Color color, Color backgroundColor, Integer maxWidth) {
-		res.setCacheable(true);
 		res.backgroundColor = backgroundColor == null ? defaultBackgroundColor : backgroundColor;
 		res.color = color == null ? defaultColor : color;
 		res.font = font == null ? defaultFont : font;
@@ -268,7 +287,7 @@ public class RenderedLabel extends Image  {
 		String hash = Integer.toHexString(getLabelHash(text, font, color, backgroundColor, maxWidth));
 		SharedResources shared = Application.get().getSharedResources();
 
-		shared.add(RenderedLabel.class, hash, null, null, res);
+		shared.add(RenderedLabel.class, hash, null, null, null, res);
 	}
 
 	/**
@@ -279,7 +298,6 @@ public class RenderedLabel extends Image  {
 	 */
 	protected RenderedTextImageResource newRenderedTextImageResource(boolean isShared) {
 		RenderedTextImageResource res = new RenderedTextImageResource();
-		res.setCacheable(isShared);
 		res.setState(this);
 		return res;
 	}
@@ -289,7 +307,9 @@ public class RenderedLabel extends Image  {
 	 */
 	public static class RenderedTextImageResource extends RenderedDynamicImageResource
 	{
-		protected Color backgroundColor;
+    private static final long serialVersionUID = 1L;
+
+    protected Color backgroundColor;
 		protected Color color;
 		protected Font font;
 		protected Integer maxWidth;
@@ -299,11 +319,6 @@ public class RenderedLabel extends Image  {
 		protected RenderedTextImageResource() {
 			super(1, 1,"png");	// tiny default that will resize to fit text
 			setType(BufferedImage.TYPE_INT_ARGB); // allow alpha transparency
-		}
-
-		@Override
-		protected void setHeaders(WebResponse response) {
-			// don't set expire headers; if resource changes, its URL will change
 		}
 
 		public void setState(RenderedLabel label) {
@@ -419,7 +434,7 @@ public class RenderedLabel extends Image  {
 		 * use the size information in the IMG tag.
 		 */
 		public void preload() {
-			getImageData();
+			getImageData(null);
 		}
 	}
 
@@ -470,22 +485,6 @@ public class RenderedLabel extends Image  {
 	public RenderedLabel setMaxWidth(Integer maxWidth) {
 		this.maxWidth = maxWidth;
 		return this;
-	}
-
-	/**
-	 * Utility method for creating Font objects from resources.
-	 * @param fontRes Resource containing  a TrueType font descriptor.
-	 * @return Plain, 16pt font derived from the resource.
-	 */
-	public static Font fontForResource(Resource fontRes) {
-		try {
-			InputStream is = fontRes.getResourceStream().getInputStream();
-			Font font = Font.createFont(Font.TRUETYPE_FONT, is);
-			is.close();
-			return font.deriveFont(Font.PLAIN, 16);
-		} catch (Throwable e) {
-			throw new WicketRuntimeException("Error loading font resources", e);
-		}
 	}
 
 	public boolean isAntiAliased() {

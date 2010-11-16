@@ -28,14 +28,15 @@ import org.apache.wicket.validation.validator.AbstractValidator;
  * Validate that the input is a particular kind of URI.
  * @author Nathan Hamblen
  */
-public abstract class URIValidator extends AbstractValidator {
+public abstract class URIValidator extends AbstractValidator<URI> {
+  private static final long serialVersionUID = 1L;
 
-	@Override
-	protected void onValidate(IValidatable validatable) {
-		onValidate(validatable, (URI)validatable.getValue());
+  @Override
+	protected void onValidate(IValidatable<URI> validatable) {
+		onValidate(validatable, validatable.getValue());
 	}
 
-	public abstract void onValidate(IValidatable formComponent, URI uri);
+	public abstract void onValidate(IValidatable<URI> formComponent, URI uri);
 
 	/**
 	 * Accepts only URIs having an http or https scheme.
@@ -54,7 +55,9 @@ public abstract class URIValidator extends AbstractValidator {
 	}
 
 	private static class SchemeValidator extends URIValidator {
-		Pattern pattern;
+    private static final long serialVersionUID = 1L;
+
+    Pattern pattern;
 		String resourceKeySuffix;
 
 		public SchemeValidator(String pattern, String resourceKeySuffix) {
@@ -63,7 +66,7 @@ public abstract class URIValidator extends AbstractValidator {
 		}
 
 		@Override
-		public void onValidate(IValidatable validatable, URI uri) {
+		public void onValidate(IValidatable<URI> validatable, URI uri) {
 			{
 				if (uri != null && (uri.getScheme() == null || !pattern.matcher(uri.getScheme()).matches()))
 					error(validatable);

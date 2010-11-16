@@ -23,7 +23,7 @@ public class FontFormattedRenderedLabel extends RenderedLabel {
 		super(id);
 	}
 
-	public FontFormattedRenderedLabel(String id, IModel model) {
+	public FontFormattedRenderedLabel(String id, IModel<?> model) {
 		super(id, model);
 	}
 
@@ -31,7 +31,7 @@ public class FontFormattedRenderedLabel extends RenderedLabel {
 		super(id, shareResource);
 	}
 
-	public FontFormattedRenderedLabel(String id, IModel model, boolean shareResource) {
+	public FontFormattedRenderedLabel(String id, IModel<?> model, boolean shareResource) {
 		super(id, model, shareResource);
 	}
 
@@ -48,7 +48,6 @@ public class FontFormattedRenderedLabel extends RenderedLabel {
 	@Override
   protected FontFormattedRenderedImageResource newRenderedTextImageResource(boolean isShared) {
 		FontFormattedRenderedImageResource res = new FontFormattedRenderedImageResource();
-		res.setCacheable(isShared);
 		res.setState(this);
 		return res;
 	}
@@ -56,7 +55,9 @@ public class FontFormattedRenderedLabel extends RenderedLabel {
 
 
 	protected static class FontFormattedRenderedImageResource extends FormattedRenderedTextImageResource {
-		protected Font boldFont, italicFont;
+    private static final long serialVersionUID = 1L;
+
+    protected Font boldFont, italicFont;
 
 		@Override
 		public void setState(RenderedLabel label) {
