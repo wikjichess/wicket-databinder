@@ -6,12 +6,12 @@
  * modify it under the terms of the GNU Lesser General Public
  * License as published by the Free Software Foundation; either
  * version 2.1 of the License, or (at your option) any later version.
- * 
+ *
  * This library is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
  * Lesser General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
@@ -22,19 +22,17 @@ import java.io.UnsupportedEncodingException;
 import java.net.URLDecoder;
 import java.net.URLEncoder;
 
-import javax.servlet.http.Cookie;
-
-import net.databinder.CookieRequestCycle;
 import net.databinder.auth.data.DataUser;
 
 import org.apache.wicket.Application;
-import org.apache.wicket.Request;
-import org.apache.wicket.RequestCycle;
 import org.apache.wicket.WicketRuntimeException;
 import org.apache.wicket.model.IModel;
 import org.apache.wicket.protocol.http.WebApplication;
-import org.apache.wicket.protocol.http.WebResponse;
 import org.apache.wicket.protocol.http.WebSession;
+import org.apache.wicket.request.Request;
+import org.apache.wicket.request.cycle.RequestCycle;
+import org.apache.wicket.util.cookies.CookieDefaults;
+import org.apache.wicket.util.cookies.CookieUtils;
 import org.apache.wicket.util.time.Duration;
 
 /**
@@ -42,9 +40,14 @@ import org.apache.wicket.util.time.Duration;
  * authentication cookies and current user lookup.
  */
 public abstract class AuthDataSessionBase<T extends DataUser> extends WebSession implements AuthSession<T> {
-	/** Effective signed in state. */
+  private static final long serialVersionUID = 1L;
+
+  private static final String CHARACTER_ENCODING = "UTF-8";
+
+  private final CookieUtils cookieUtils;
+
+  /** Effective signed in state. */
 	private IModel<T> userModel;
-	private static final String CHARACTER_ENCODING = "UTF-8";
 
 	/**
 	 * Initialize new session.
@@ -52,16 +55,21 @@ public abstract class AuthDataSessionBase<T extends DataUser> extends WebSession
 	 */
 	public AuthDataSessionBase(Request request) {
 		super(request);
+		final CookieDefaults defaults = new CookieDefaults();
+		defaults.setMaxAge((int) getSignInCookieMaxAge().seconds());
+    cookieUtils = new CookieUtils(defaults);
 	}
-	
-	protected AuthApplication<T> getApp() {
+
+	@SuppressWarnings("unchecked")
+  protected AuthApplication<T> getApp() {
 		return (AuthApplication<T>) Application.get();
 	}
-	
-	public static AuthDataSessionBase get() {
-		return (AuthDataSessionBase) WebSession.get();
+
+	@SuppressWarnings("unchecked")
+  public static <Y extends DataUser> AuthDataSessionBase<Y> get() {
+		return (AuthDataSessionBase<Y>) WebSession.get();
 	}
-	
+
 	/**
 	 * @return DataUser object for current user, or null if none signed in.
 	 */
@@ -71,11 +79,11 @@ public abstract class AuthDataSessionBase<T extends DataUser> extends WebSession
 		}
 		return null;
 	}
-	
+
 	public IModel<T> getUserModel() {
 		return userModel;
 	}
-	
+
 	/**
 	 * @return model for current user
 	 */
@@ -87,7 +95,7 @@ public abstract class AuthDataSessionBase<T extends DataUser> extends WebSession
 	protected Duration getSignInCookieMaxAge() {
 		return Duration.days(31);
 	}
-	
+
 	/**
 	 * Determine if user is signed in, or can be via cookie.
 	 * @return true if signed in or cookie sign in is possible and successful
@@ -95,16 +103,16 @@ public abstract class AuthDataSessionBase<T extends DataUser> extends WebSession
 	public boolean isSignedIn() {
 		if (userModel == null)
 			cookieSignIn();
-		return userModel != null; 
+		return userModel != null;
 	}
-	
+
 	/**
 	 * @return true if signed in, false if credentials incorrect
 	 */
 	public boolean signIn(String username, String password) {
 		return signIn(username, password, false);
 	}
-	
+
 	/**
 	 * @param setCookie if true, sets cookie to remember user
 	 * @return true if signed in, false if credentials incorrect
@@ -114,7 +122,7 @@ public abstract class AuthDataSessionBase<T extends DataUser> extends WebSession
 		T potential = getUser(username);
 		if (potential != null && (potential).getPassword().matches(password))
 			signIn(potential, setCookie);
-		
+
 		return userModel != null;
 	}
 
@@ -129,32 +137,31 @@ public abstract class AuthDataSessionBase<T extends DataUser> extends WebSession
 		if (setCookie)
 			setCookie();
 	}
-		
+
 	/**
 	 * Attempts cookie sign in, which will set usename field but not user.
 	 * @return true if signed in, false if credentials incorrect or unavailable
 	 */
 	protected boolean cookieSignIn() {
-		CookieRequestCycle requestCycle = (CookieRequestCycle) RequestCycle.get();
-		Cookie userCookie = requestCycle.getCookie(getUserCookieName()),
-			token = requestCycle.getCookie(getAuthCookieName());
+		String userCookie = cookieUtils.load(getUserCookieName()),
+			token = cookieUtils.load(getAuthCookieName());
 
 		if (userCookie != null && token != null) {
 			T potential;
 			try {
-				potential = getUser(URLDecoder.decode(userCookie.getValue(), CHARACTER_ENCODING));
+				potential = getUser(URLDecoder.decode(userCookie, CHARACTER_ENCODING));
 			} catch (UnsupportedEncodingException e) {
 				throw new WicketRuntimeException(e);
 			}
 			if (potential != null && potential instanceof DataUser) {
 				String correctToken = getApp().getToken(potential);
-				if (correctToken.equals(token.getValue()))
+				if (correctToken.equals(token))
 					signIn(potential, false);
 			}
 		}
 		return userModel != null;
 	}
-		
+
 	/**
 	 * Looks for a persisted DataUser object matching the given username. Uses the user class
 	 * and criteria builder returned from the application subclass implementing AuthApplication.
@@ -169,7 +176,7 @@ public abstract class AuthDataSessionBase<T extends DataUser> extends WebSession
 	public static String getUserCookieName() {
 		return Application.get().getClass().getSimpleName() + "_USER";
 	}
-	
+
 	public static String getAuthCookieName() {
 		return Application.get().getClass().getSimpleName() + "_AUTH";
 	}
@@ -182,34 +189,18 @@ public abstract class AuthDataSessionBase<T extends DataUser> extends WebSession
 	protected void setCookie() {
 		if (userModel == null)
 			throw new WicketRuntimeException("User must be signed in when calling this method");
-		
+
 		T cookieUser = getUser();
-		WebResponse resp = (WebResponse) RequestCycle.get().getResponse();
-		
-		Cookie name, auth;
+
 		try {
-			name = new Cookie(getUserCookieName(), 
+		  cookieUtils.save(getUserCookieName(),
 					URLEncoder.encode(cookieUser.getUsername(), CHARACTER_ENCODING));
-			auth = new Cookie(getAuthCookieName(), getApp().getToken(cookieUser));
+		  cookieUtils.save(getAuthCookieName(), getApp().getToken(cookieUser));
 		} catch (UnsupportedEncodingException e) {
 			throw new WicketRuntimeException(e);
 		}
-		
-		int  maxAge = (int) getSignInCookieMaxAge().seconds();
-		name.setMaxAge(maxAge);
-		auth.setMaxAge(maxAge);
-
-		RequestCycle rc = RequestCycle.get();
-		if (rc instanceof CookieRequestCycle) {
-			CookieRequestCycle cookieRc = (CookieRequestCycle) rc;
-			cookieRc.applyScope(name);
-			cookieRc.applyScope(auth);
-		}
-		
-		resp.addCookie(name);
-		resp.addCookie(auth);
 	}
-	
+
 	/**
 	 * Detach userModel manually, as it isnt' attached to any component.
 	 */
@@ -218,16 +209,15 @@ public abstract class AuthDataSessionBase<T extends DataUser> extends WebSession
 		if (userModel != null)
 			userModel.detach();
 	}
-	
+
 	/** Nullifies userModela nd clears authentication cookies. */
 	protected void clearUser() {
 		userModel = null;
-		CookieRequestCycle requestCycle = (CookieRequestCycle) RequestCycle.get();
-		requestCycle.clearCookie(getUserCookieName());
-		requestCycle.clearCookie(getAuthCookieName());
-  }	  
+		cookieUtils.remove(getUserCookieName());
+		cookieUtils.remove(getAuthCookieName());
+  }
 
-  /** Signs out and invalidates session. */	
+  /** Signs out and invalidates session. */
 	public void signOut() {
 	  clearUser();
 		getSessionStore().invalidate(RequestCycle.get().getRequest());
