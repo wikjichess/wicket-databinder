@@ -106,17 +106,17 @@ public class DatabinderValidator<T> extends AbstractValidator<T> implements IVal
 	 * from the component this validator was added to.
 	 */
 	@SuppressWarnings("unchecked")
-	@Override
-	protected void onValidate(final IValidatable comp) {
+  @Override
+	protected void onValidate(final IValidatable<T> comp) {
 		if (base == null || property == null) {
-			final ModelProp mp = getModelProp(component);
+			final ModelProp<T> mp = getModelProp(component);
 			base = mp.model;
 			property = mp.prop;
 		}
-		final Object o  = base.getObject();
+		final T o  = base.getObject();
 		if (validator == null) {
-		  final Class c = Hibernate.getClass(o);
-		  validator = new ClassValidator(c);
+		  final Class<T> c = Hibernate.getClass(o);
+		  validator = new ClassValidator<T>(c);
 		}
 		for (final InvalidValue iv : validator.getPotentialInvalidValues(property, comp.getValue())) {
       comp.error(new ValidationError().setMessage(iv.getPropertyName() + " " + iv.getMessage()));
@@ -148,7 +148,7 @@ public class DatabinderValidator<T> extends AbstractValidator<T> implements IVal
 			mp.model = (IModel<T>) propModel.getChainedModel();
 			mp.prop = propModel.getPropertyExpression();
 		} else if (model instanceof IWrapModel) {
-			mp.model = ((IWrapModel)model).getWrappedModel();
+			mp.model = (IModel<T>) ((IWrapModel<T>)model).getWrappedModel();
 			mp.prop = formComponent.getId();
 		} else {
       throw new UnrecognizedModelException(formComponent, model);

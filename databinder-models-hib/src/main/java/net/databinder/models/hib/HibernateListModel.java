@@ -6,12 +6,12 @@
  * modify it under the terms of the GNU Lesser General Public
  * License as published by the Free Software Foundation; either
  * version 2.1 of the License, or (at your option) any later version.
- * 
+ *
  * This library is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
  * Lesser General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
@@ -34,12 +34,14 @@ import org.hibernate.Session;
  * @author Nathan Hamblen
  */
 public class HibernateListModel<T> extends LoadableDetachableModel<List<T>> {
-	private QueryBuilder queryBuilder;
-	private Class objectClass;
+  private static final long serialVersionUID = 1L;
+
+  private QueryBuilder queryBuilder;
+	private Class<T> objectClass;
 	private CriteriaBuilder criteriaBuilder;
-	
+
 	private Object factoryKey;
-	
+
 	/**
 	 * Contructor for a simple query.
 	 * @param queryString query with no parameters
@@ -47,20 +49,22 @@ public class HibernateListModel<T> extends LoadableDetachableModel<List<T>> {
 	public HibernateListModel(String queryString) {
 		this(new QueryBinderBuilder(queryString));
 	}
-	
+
 	/**
 	 * Contructor for a simple query.
 	 * @param queryString query with no parameters
-	 * @param cacheable sets query to cacheable if true 
+	 * @param cacheable sets query to cacheable if true
 	 */
 	public HibernateListModel(String queryString, final boolean cacheable) {
 		this(queryString, new QueryBinder() {
-			public void bind(Query query) {
+      private static final long serialVersionUID = HibernateListModel.serialVersionUID;
+
+      public void bind(Query query) {
 				query.setCacheable(cacheable);
 			}
 		});
 	}
-	
+
 	/**
 	 * Constructor for a parameterized query.
 	 * @param queryString Query with parameters
@@ -71,11 +75,11 @@ public class HibernateListModel<T> extends LoadableDetachableModel<List<T>> {
 	}
 
 	/**
-	 * Constructor for a list of all results in class. While this query will be too open for 
+	 * Constructor for a list of all results in class. While this query will be too open for
 	 * most applications, it can useful in early development.
 	 * @param objectClass class objects to return
 	 */
-	public HibernateListModel(Class objectClass) {
+	public HibernateListModel(Class<T> objectClass) {
 		this.objectClass = objectClass;
 	}
 
@@ -84,11 +88,11 @@ public class HibernateListModel<T> extends LoadableDetachableModel<List<T>> {
 	 * @param objectClass class for root criteria
 	 * @param criteriaBuilder builder to apply criteria restrictions
 	 */
-	public HibernateListModel(Class objectClass, CriteriaBuilder criteriaBuilder) {
+	public HibernateListModel(Class<T> objectClass, CriteriaBuilder criteriaBuilder) {
 		this.objectClass = objectClass;
 		this.criteriaBuilder = criteriaBuilder;
 	}
-	
+
 	/**
 	 * Constructor for a custom query that is built by the calling application.
 	 * @param queryBuilder builder to create and bind query object
@@ -107,11 +111,11 @@ public class HibernateListModel<T> extends LoadableDetachableModel<List<T>> {
 	 * @param key session factory key
 	 * @return this, for chaining
 	 */
-	public HibernateListModel setFactoryKey(Object key) {
+	public HibernateListModel<T> setFactoryKey(Object key) {
 		this.factoryKey = key;
 		return this;
 	}
-	
+
 	/**
 	 * Load the object List through Hibernate, binding query parameters if available.
 	 */

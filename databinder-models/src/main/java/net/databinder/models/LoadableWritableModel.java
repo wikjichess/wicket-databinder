@@ -26,8 +26,9 @@ import org.apache.wicket.model.IModel;
  * read-only model and permits changing the underlying object.
  */
 public abstract class LoadableWritableModel<T> implements IModel<T> {
+  private static final long serialVersionUID = 1L;
 
-	private transient boolean attached = false;
+  private transient boolean attached = false;
 	private transient T tempModelObject;
 
 	public LoadableWritableModel() {
@@ -65,7 +66,8 @@ public abstract class LoadableWritableModel<T> implements IModel<T> {
 		tempModelObject = object;
 	}
 
-	public String toString() {
+	@Override
+  public String toString() {
 		StringBuffer sb = new StringBuffer(super.toString());
 		sb.append(":attached=").append(attached).append(":tempModelObject=[")
 				.append(this.tempModelObject).append("]");

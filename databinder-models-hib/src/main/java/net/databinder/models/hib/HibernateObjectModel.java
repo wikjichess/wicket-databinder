@@ -43,7 +43,9 @@ import org.hibernate.proxy.HibernateProxyHelper;
  * @author Nathan Hamblen
  */
 public class HibernateObjectModel<T> extends LoadableWritableModel<T> implements BindingModel<T> {
-	private Class objectClass;
+  private static final long serialVersionUID = 1L;
+
+  private Class<T> objectClass;
 	private Serializable objectId;
 	private QueryBuilder queryBuilder;
 	private CriteriaBuilder criteriaBuilder;
@@ -51,7 +53,7 @@ public class HibernateObjectModel<T> extends LoadableWritableModel<T> implements
 	private T retainedObject;
 	/** Enable retaining unsaved objects between requests. */
 	private boolean retainUnsaved = true;
-	
+
 	private Object factoryKey;
 
 	/**
@@ -60,7 +62,7 @@ public class HibernateObjectModel<T> extends LoadableWritableModel<T> implements
 	 * @param objectClass class to be loaded and stored by Hibernate
 	 * @param entityId id of the persistent object
 	 */
-	public HibernateObjectModel(Class objectClass, Serializable entityId) {
+	public HibernateObjectModel(Class<T> objectClass, Serializable entityId) {
 		this.objectClass = objectClass;
 		this.objectId = entityId;
 	}
@@ -72,7 +74,7 @@ public class HibernateObjectModel<T> extends LoadableWritableModel<T> implements
 	 * and recreated with each request.
 	 * @param objectClass class to be loaded and stored by Hibernate
 	 */
-	public HibernateObjectModel(Class objectClass) {
+	public HibernateObjectModel(Class<T> objectClass) {
 		this.objectClass = objectClass;
 	}
 
@@ -104,14 +106,14 @@ public class HibernateObjectModel<T> extends LoadableWritableModel<T> implements
 	 * @param objectClass class of object for root criteria
 	 * @param criteriaBuilder builder to apply criteria restrictions
 	 */
-	public HibernateObjectModel(Class objectClass, CriteriaBuilder criteriaBuilder) {
+	public HibernateObjectModel(Class<T> objectClass, CriteriaBuilder criteriaBuilder) {
 		this.objectClass = objectClass;
 		this.criteriaBuilder = criteriaBuilder;
 	}
 
 	/**
 	 * Construct with a query builder that returns exactly one result, used for custom query
-	 * objects. Queries that return more than one result will produce exceptions.  Queries that 
+	 * objects. Queries that return more than one result will produce exceptions.  Queries that
 	 * return no result will produce a null object.
 	 * @param queryBuilder builder to create and bind query object
 	 */
@@ -124,7 +126,7 @@ public class HibernateObjectModel<T> extends LoadableWritableModel<T> implements
 	 */
 	public HibernateObjectModel() {
 	}
-	
+
 	/** @return session factory key, or null for the default factory */
 	public Object getFactoryKey() {
 		return factoryKey;
@@ -135,7 +137,7 @@ public class HibernateObjectModel<T> extends LoadableWritableModel<T> implements
 	 * @param key session factory key
 	 * @return this, for chaining
 	 */
-	public HibernateObjectModel setFactoryKey(Object key) {
+	public HibernateObjectModel<T> setFactoryKey(Object key) {
 		this.factoryKey = key;
 		return this;
 	}
@@ -146,7 +148,8 @@ public class HibernateObjectModel<T> extends LoadableWritableModel<T> implements
 	 * are removed if present.
 	 * @param object must be an entity contained in the current Hibernate session, or Serializable, or null
 	 */
-	public void setObject(T object) {
+	@SuppressWarnings("unchecked")
+  public void setObject(T object) {
 		unbind();	// clear everything but class, name
 		objectClass = null;
 
@@ -157,7 +160,7 @@ public class HibernateObjectModel<T> extends LoadableWritableModel<T> implements
 			if (sess.contains(object))
 				objectId = sess.getIdentifier(object);
 			else if (retainUnsaved)
-					retainedObject = (T) object;
+					retainedObject = object;
 			setTempModelObject(object);	// skip calling load later
 		}
 	}
@@ -181,12 +184,12 @@ public class HibernateObjectModel<T> extends LoadableWritableModel<T> implements
 				if (retainUnsaved && retainedObject != null)
 					return retainedObject;
 				else if (retainUnsaved) try {
-					return retainedObject = (T) objectClass.newInstance();
+					return retainedObject = objectClass.newInstance();
 				} catch (ClassCastException e) {
 					throw new WicketRuntimeException("Unsaved entity must be Serializable or retainUnsaved set to false; see HibernateObjectModel javadocs.");
 				}
 				else
-					return (T) objectClass.newInstance();
+					return objectClass.newInstance();
 			}
 		} catch (ClassCastException e) {
 			throw new RuntimeException("Retaining unsaved model objects requires that they be Serializable.", e);
@@ -209,12 +212,12 @@ public class HibernateObjectModel<T> extends LoadableWritableModel<T> implements
 
 	/**
 	 * Checks if the model is retaining an object this has since become a
-	 * persistent entity. If so, the ID is fetched and the reference discarded.  
+	 * persistent entity. If so, the ID is fetched and the reference discarded.
 	 */
 	public void checkBinding() {
 		if (!isBound() && retainedObject != null) {
 			Session sess = Databinder.getHibernateSession(factoryKey);
-			
+
 			if (sess.contains(retainedObject)) {
 				objectId = sess.getIdentifier(retainedObject);
 				retainedObject = null;
@@ -230,7 +233,7 @@ public class HibernateObjectModel<T> extends LoadableWritableModel<T> implements
 		Object o = getObject();
 
 		if (o != null) {
-			Class c = Hibernate.getClass(o);
+			Class<?> c = Hibernate.getClass(o);
 			try {
 				for (Method m : c.getMethods())
 					if (m.isAnnotationPresent(Version.class)
@@ -238,7 +241,7 @@ public class HibernateObjectModel<T> extends LoadableWritableModel<T> implements
 							&& m.getReturnType() instanceof Serializable)
 						return (Serializable) m.invoke(o, new Object[] {});
 				for (Field f : c.getDeclaredFields())
-					if (f.isAnnotationPresent(Version.class) 
+					if (f.isAnnotationPresent(Version.class)
 							&& f.getType() instanceof Serializable) {
 						f.setAccessible(true);
 						return (Serializable) f.get(o);
@@ -255,10 +258,10 @@ public class HibernateObjectModel<T> extends LoadableWritableModel<T> implements
 	public boolean equals(Object obj) {
 		Object target = getObject();
 		if (target != null && obj instanceof HibernateObjectModel)
-			return target.equals(((HibernateObjectModel)obj).getObject());
+			return target.equals(((HibernateObjectModel<?>)obj).getObject());
 		return super.equals(obj);
 	}
-	
+
 	/** @return hash of contained object if present, otherwise from super-implementation.*/
 	@Override
 	public int hashCode() {
@@ -267,7 +270,7 @@ public class HibernateObjectModel<T> extends LoadableWritableModel<T> implements
 			return super.hashCode();
 		return target.hashCode();
 	}
-	
+
 
 	/**
 	 * Disassociates this object from any persistent object, but retains the class

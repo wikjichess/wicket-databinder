@@ -25,6 +25,8 @@ import net.databinder.models.hib.HibernateObjectModel;
 import net.databinder.valid.hib.DatabinderValidator.UnrecognizedModelException;
 
 import org.apache.wicket.markup.html.form.FormComponent;
+import org.apache.wicket.util.visit.IVisit;
+import org.apache.wicket.util.visit.IVisitor;
 import org.apache.wicket.validation.IValidatable;
 import org.apache.wicket.validation.IValidator;
 import org.hibernate.Hibernate;
@@ -125,7 +127,7 @@ public class ValidDataForm<T> extends DataForm<T> {
 	protected void validateModelObject() {
 		final T o = getPersistentObjectModel().getObject();
 		ClassValidator<T> v = validator == null
-		    ?  v = new ClassValidator(Hibernate.getClass(o))
+		    ?  v = new ClassValidator<T>(Hibernate.getClass(o))
         : validator;
 		for (final InvalidValue iv : v.getInvalidValues(o)) {
       error(iv.getPropertyName() + " " + iv.getMessage());
@@ -139,15 +141,16 @@ public class ValidDataForm<T> extends DataForm<T> {
 	@Override
 	protected void onBeforeRender() {
 		super.onBeforeRender();
-		visitFormComponents(new FormComponent.AbstractVisitor() {
-			@Override
-			protected void onFormComponent(final FormComponent<?> formComponent) {
-				if (formComponent.getValidators().isEmpty()) {
+		visitFormComponents(new IVisitor<FormComponent<?>, Void>() {
+
+      public void component(FormComponent<?> formComponent, IVisit<Void> visit)
+      {
+        if (formComponent.getValidators().isEmpty()) {
           try {
-          	DatabinderValidator.addTo(formComponent, validator);
+            DatabinderValidator.addTo(formComponent, validator);
           } catch (final UnrecognizedModelException e) { }
         }
-			}
+      }
 		});
 	}
 

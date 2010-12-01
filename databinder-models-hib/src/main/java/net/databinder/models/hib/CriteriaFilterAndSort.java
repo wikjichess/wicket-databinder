@@ -10,12 +10,12 @@ package net.databinder.models.hib;
 * modify it under the terms of the GNU Lesser General Public
 * License as published by the Free Software Foundation; either
 * version 2.1 of the License, or (at your option) any later version.
-* 
+*
 * This library is distributed in the hope that it will be useful,
 * but WITHOUT ANY WARRANTY; without even the implied warranty of
 * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
 * Lesser General Public License for more details.
-* 
+*
 * You should have received a copy of the GNU Lesser General Public
 * License along with this library; if not, write to the Free Software
 * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
@@ -23,7 +23,6 @@ package net.databinder.models.hib;
 
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -42,9 +41,9 @@ import org.hibernate.criterion.Restrictions;
 /**
  * An OrderingCriteriaBuilder implementation that can be wired to a FilterToolbar
  * String properties are searched via an iLike. Number properties can specify >, >=, < or <=
- * 
+ *
  * Example usage (from baseball player example);
- * 
+ *
  * CriteriaFilterAndSort builder = new CriteriaFilterAndSort(new Player(), "nameLast", true, false);
  * FilterForm form = new FilterForm("form", builder);
  * HibernateProvider provider = new HibernateProvider(Player.class, builder);
@@ -57,10 +56,11 @@ import org.hibernate.criterion.Restrictions;
  * table.addTopToolbar(new AjaxNavigationToolbar(table));
  * table.addTopToolbar(new FilterToolbar(table, form, builder));
  * table.addTopToolbar(new AjaxFallbackHeadersToolbar(table, builder));
- * 
+ *
  * @author Mark Southern
  */
 public class CriteriaFilterAndSort extends CriteriaBuildAndSort implements IFilterStateLocator {
+  private static final long serialVersionUID = 1L;
 
     // whitespace, a qualifier, a number surrounded by whitespace
     private Pattern pattern = Pattern.compile("^(\\s+)?([><]=?)(\\s+)?(.*)(\\s+)?");
@@ -74,12 +74,13 @@ public class CriteriaFilterAndSort extends CriteriaBuildAndSort implements IFilt
         this.bean = bean;
     }
 
+    @Override
     public void buildUnordered(Criteria criteria) {
         super.buildUnordered(criteria);
 
         Conjunction conj = Restrictions.conjunction();
 
-        for (Map.Entry<String, String> entry : (Set<Map.Entry<String, String>>) filterMap.entrySet()) {
+        for (Map.Entry<String, String> entry : filterMap.entrySet()) {
             // System.out.println(String.format("%s\t%s", entry.getKey(), entry.getValue()));
             String property = entry.getKey();
             String value = entry.getValue();
@@ -87,7 +88,7 @@ public class CriteriaFilterAndSort extends CriteriaBuildAndSort implements IFilt
                 continue;
 
             String prop = processProperty(criteria, property);
-            Class clazz = PropertyResolver.getPropertyClass(property, bean);
+            Class<?> clazz = PropertyResolver.getPropertyClass(property, bean);
 
             if (String.class.isAssignableFrom(clazz)) {
                 String[] items = value.split("\\s+");
@@ -126,20 +127,20 @@ public class CriteriaFilterAndSort extends CriteriaBuildAndSort implements IFilt
         }
         criteria.add(conj);
     }
-    
-    protected Number convertToNumber(String value, Class clazz) {
+
+    protected Number convertToNumber(String value, Class<?> clazz) {
       return (Number)
         new PropertyResolverConverter(Application.get().getConverterLocator(), Session.get().getLocale())
           .convert(value, clazz);
     }
-    
+
     public Object getFilterState() {
         return filterMap;
     }
 
-    @SuppressWarnings("unchecked")
-	public void setFilterState(Object filterMap) {
-        this.filterMap = (Map) filterMap;
+	@SuppressWarnings("unchecked")
+  public void setFilterState(Object filterMap) {
+        this.filterMap = (Map<String, String>) filterMap;
     }
 
 }

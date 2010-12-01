@@ -7,7 +7,7 @@ import org.hibernate.Query;
 /**
  * A query binder that sets query parameters to corresponding properties taken
  * from the given Wicket model object.
- * 
+ *
  * @author Jonathan
  */
 public class ModelPropertyQueryBinder extends AbstractPropertyQueryBinder
@@ -15,9 +15,9 @@ public class ModelPropertyQueryBinder extends AbstractPropertyQueryBinder
 
 	private static final long serialVersionUID = -6544558086991812867L;
 
-	protected final IModel model;
+	protected final IModel<?> model;
 
-	public ModelPropertyQueryBinder(final IModel model) {
+	public ModelPropertyQueryBinder(final IModel<?> model) {
 		this.model = model;
 	}
 

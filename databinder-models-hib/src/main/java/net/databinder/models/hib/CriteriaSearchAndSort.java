@@ -28,12 +28,12 @@ import org.hibernate.criterion.MatchMode;
 import org.hibernate.criterion.Restrictions;
 
 /**
- * An OrderingCriteriaBuilder implementation that can be wired to a SearchPanel or similar 
- * and the given properties searched auto-magically via an iLike. Avoids problems with duplicate 
+ * An OrderingCriteriaBuilder implementation that can be wired to a SearchPanel or similar
+ * and the given properties searched auto-magically via an iLike. Avoids problems with duplicate
  * Aliases by having all the Criteria building code in one location.
- * 
+ *
  * Example usage;
- * 
+ *
  * SearchPanel searchPanel = new SearchPanel("search") {
  *          public void onUpdate(AjaxRequestTarget target) {
  *              target.addComponent(getDataTable());
@@ -48,26 +48,29 @@ import org.hibernate.criterion.Restrictions;
  * CriteriaSearchAndSort builder = new CriteriaSearchAndSort(searchModel, new String[]{"name", "category.name"}, new String[]{ "name" }, true, false);
  * SortableHibernateProvider provider = new SortableHibernateProvider(getBeanClass(), builder);
  * DataTable table = new DataTable("table", columns, provider, 25);
- * 
+ *
  * @author Mark Southern
  */
 public class CriteriaSearchAndSort extends CriteriaBuildAndSort {
+  private static final long serialVersionUID = 1L;
 
     private String[] searchProperties;
 
-    private IModel searchTextModel;
+    private IModel<?> searchTextModel;
 
-    public CriteriaSearchAndSort(IModel searchTextModel, String[] searchProperties, String defaultSortProperty,
+    public CriteriaSearchAndSort(IModel<?> searchTextModel, String[] searchProperties, String defaultSortProperty,
             boolean sortAscending, boolean sortCased) {
         super(defaultSortProperty, sortAscending, sortCased);
         this.searchTextModel = searchTextModel;
         this.searchProperties = searchProperties;
     }
 
+    @Override
     public void buildUnordered(Criteria criteria) {
         super.buildUnordered(criteria);
 
-        String searchText = (String) searchTextModel.getObject();
+        String searchText = searchTextModel.getObject().toString();
+
         if (searchText != null) {
             String[] items = searchText.split("\\s+");
             Conjunction conj = Restrictions.conjunction();

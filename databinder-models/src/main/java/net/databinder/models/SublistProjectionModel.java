@@ -17,11 +17,13 @@ import org.apache.wicket.model.LoadableDetachableModel;
  *
  * @author Nathan Hamblen
  */
-public abstract class SublistProjectionModel extends LoadableDetachableModel {
-	/** Continuous list used to feed this model's sublists. */
-	private IModel master;
+public abstract class SublistProjectionModel<T> extends LoadableDetachableModel<List<List<? extends T>>> {
+  private static final long serialVersionUID = 1L;
 
-	public SublistProjectionModel(IModel master) {
+  /** Continuous list used to feed this model's sublists. */
+	private IModel<List<? extends T>> master;
+
+	public SublistProjectionModel(IModel<List<? extends T>> master) {
 		this.master = master;
 	}
 
@@ -38,25 +40,29 @@ public abstract class SublistProjectionModel extends LoadableDetachableModel {
 	 * Breaks the parent list into chunks of the requested size, in the same order as
 	 * the parent list.
 	 */
-	public static class Chunked extends SublistProjectionModel {
+	public static class Chunked<T> extends SublistProjectionModel<T> {
+    private static final long serialVersionUID = SublistProjectionModel.serialVersionUID;
 
-		protected int chunkSize;
+    protected int chunkSize;
 
-		public Chunked(int chunkSize, IModel master) {
+		public Chunked(int chunkSize, IModel<List<? extends T>> master) {
 			super(master);
 			this.chunkSize = chunkSize;
 		}
 
-		protected int transform(int parentIdx, int sublistIdx) {
+		@Override
+    protected int transform(int parentIdx, int sublistIdx) {
 			return parentIdx * chunkSize + sublistIdx;
 		}
 
-		protected int getSize(int parentIdx) {
+		@Override
+    protected int getSize(int parentIdx) {
 			return Math.min(getMasterList().size() - parentIdx * chunkSize,
 					chunkSize);
 		}
 
-		protected int getParentSize() {
+		@Override
+    protected int getParentSize() {
 			return (getMasterList().size() - 1) / chunkSize + 1;
 		}
 	}
@@ -65,30 +71,33 @@ public abstract class SublistProjectionModel extends LoadableDetachableModel {
 	 * Transposes rows and columns so the list runs top to bottom rather than
 	 * left to right.
 	 */
-	public static class Transposed extends Chunked {
+	public static class Transposed<T> extends Chunked<T> {
+	  private static final long serialVersionUID = SublistProjectionModel.serialVersionUID;
 
-		public Transposed(int columns, IModel master) {
+		public Transposed(int columns, IModel<List<? extends T>> master) {
 			super(columns, master);
 		}
 
-		protected int transform(int parentIdx, int sublistIdx) {
+		@Override
+    protected int transform(int parentIdx, int sublistIdx) {
 			return parentIdx + sublistIdx * getParentSize();
 		}
 
-		protected int getSize(int parentIdx) {
+		@Override
+    protected int getSize(int parentIdx) {
 			return (getMasterList().size() - parentIdx - 1) / getParentSize() + 1;
 		}
 
 	}
 
-	protected List getMasterList() {
-		return (List) master.getObject();
+	protected List<? extends T> getMasterList() {
+		return master.getObject();
 	}
 
 	@Override
-	protected List<List> load() {
+	protected List<List<? extends T>> load() {
 		int rows = getParentSize();
-		List<List> parent = new ArrayList<List>(rows);
+		List<List<? extends T>> parent = new ArrayList<List<? extends T>>(rows);
 		for (int i = 0; i < rows; i++)
 			parent.add(new ProjectedSublist(i));
 
@@ -99,8 +108,9 @@ public abstract class SublistProjectionModel extends LoadableDetachableModel {
 	 * This is a virtual list, a projection of the master list. Its size and index trasform is
 	 * governed by the containing object.
 	 */
-	@SuppressWarnings("unchecked")
-	protected class ProjectedSublist extends AbstractList {
+	protected class ProjectedSublist extends AbstractList<T> {
+	  private static final long serialVersionUID = SublistProjectionModel.serialVersionUID;
+
 		private int parentIdx;
 
 		public ProjectedSublist(final int parentIdx) {
@@ -108,7 +118,7 @@ public abstract class SublistProjectionModel extends LoadableDetachableModel {
 		}
 
 		@Override
-		public Object get(final int index) {
+		public T get(final int index) {
 			return getMasterList().get(transform(parentIdx, index));
 		}
 

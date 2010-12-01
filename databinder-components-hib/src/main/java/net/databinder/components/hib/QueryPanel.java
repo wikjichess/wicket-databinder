@@ -7,12 +7,12 @@
  * modify it under the terms of the GNU Lesser General Public
  * License as published by the Free Software Foundation; either
  * version 2.1 of the License, or (at your option) any later version.
- * 
+ *
  * This library is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
  * Lesser General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
@@ -30,19 +30,20 @@ import net.databinder.models.hib.HibernateObjectModel;
 import org.apache.wicket.Component;
 import org.apache.wicket.ajax.AjaxRequestTarget;
 import org.apache.wicket.ajax.markup.html.form.AjaxButton;
+import org.apache.wicket.extensions.markup.html.repeater.data.grid.ICellPopulator;
 import org.apache.wicket.extensions.markup.html.repeater.data.table.AbstractColumn;
 import org.apache.wicket.extensions.markup.html.repeater.data.table.DataTable;
 import org.apache.wicket.extensions.markup.html.repeater.data.table.HeadersToolbar;
 import org.apache.wicket.extensions.markup.html.repeater.data.table.IColumn;
 import org.apache.wicket.extensions.markup.html.repeater.data.table.NavigationToolbar;
 import org.apache.wicket.extensions.markup.html.repeater.data.table.PropertyColumn;
+import org.apache.wicket.extensions.markup.html.repeater.util.SortableDataProvider;
 import org.apache.wicket.markup.html.WebMarkupContainer;
 import org.apache.wicket.markup.html.basic.Label;
 import org.apache.wicket.markup.html.form.Form;
 import org.apache.wicket.markup.html.form.TextArea;
 import org.apache.wicket.markup.html.panel.Panel;
 import org.apache.wicket.markup.repeater.Item;
-import org.apache.wicket.markup.repeater.data.IDataProvider;
 import org.apache.wicket.model.CompoundPropertyModel;
 import org.apache.wicket.model.IModel;
 import org.apache.wicket.model.Model;
@@ -72,12 +73,12 @@ import org.hibernate.type.Type;
  * <pre>
  * from JobModel
  * </pre>
- * the columns in the result table will be the available properties of a 
+ * the columns in the result table will be the available properties of a
  * JobModel
  */
 public class QueryPanel extends Panel {
 	private static final long serialVersionUID = 1L;
-	
+
 	/**
 	 * Bean used to store the query
 	 */
@@ -86,28 +87,29 @@ public class QueryPanel extends Panel {
 	 * Stores information about the query execution (executed query, time, ...)
 	 */
 	private String executionInfo;
-	
+
 	/**
 	 * Constructs an {@link QueryPanel}
-	 * @param id 
+	 * @param id
 	 * 			the panel identifier. Must not be null.
 	 */
 	public QueryPanel(String id) {
 		super(id);
 
 		final WebMarkupContainer resultsHolder = new WebMarkupContainer("resultsHolder");
-		resultsHolder.add(new Label("executionInfo", new PropertyModel(this, "executionInfo")));
+		resultsHolder.add(new Label("executionInfo", new PropertyModel<String>(this, "executionInfo")));
 		resultsHolder.add(getResultsTable());
 		resultsHolder.setOutputMarkupId(true);
 		add(resultsHolder);
-		
+
 		Form<QueryBean> form = new Form<QueryBean>("form", new CompoundPropertyModel<QueryBean>(query));
 		form.setOutputMarkupId(true);
-		form.add(new TextArea("query"));
+		form.add(new TextArea<String>("query"));
 		form.add(new AjaxButton("submit", form) {
 			private static final long serialVersionUID = 1L;
 
-			protected void onSubmit(AjaxRequestTarget target, Form form)
+			@Override
+      protected void onSubmit(AjaxRequestTarget target, Form<?> form)
 			{
 				if (resultsHolder.get("results") != null) {
 					resultsHolder.remove("results");
@@ -121,12 +123,19 @@ public class QueryPanel extends Panel {
 				} catch (IllegalStateException e) {
 					note(e);
 				}
-				target.addComponent(resultsHolder);
+				target.add(resultsHolder);
 			}
-			private void note(Exception e) {
-				resultsHolder.add(new Label("results", 
-						e.getClass().getSimpleName()+ ": " + e.getMessage()));
-			}
+
+      @Override
+      protected void onError(AjaxRequestTarget target, Form<?> form)
+      {
+      }
+
+      private void note(Exception e) {
+        resultsHolder.add(new Label("results",
+            e.getClass().getSimpleName()+ ": " + e.getMessage()));
+      }
+
 		});
 		add(form);
 	}
@@ -140,28 +149,28 @@ public class QueryPanel extends Panel {
 		if (Strings.isEmpty(query.getQuery())) {
 			return new Label("results", "");
 		} else {
-			IDataProvider dataProvider = new IDataProvider() {
+		  SortableDataProvider<Object[]> dataProvider = new SortableDataProvider<Object[]>() {
 				private static final long serialVersionUID = 1L;
 
-				public void detach() {
+				@Override
+        public void detach() {
 				}
-			
+
 				public int size() {
 					Session sess = Databinder.getHibernateSession();
 					Query query = sess.createQuery(getQuery());
 					return query.list().size();
 				}
-				
+
 				public String getQuery() {
 					return QueryPanel.this.query.getQuery();
 				}
-			
-				@SuppressWarnings("unchecked")
-				public IModel<?> model(Object object) {
-					return new CompoundPropertyModel(new HibernateObjectModel(object));
+
+				public IModel<Object[]> model(Object[] object) {
+					return new CompoundPropertyModel<Object[]>(new HibernateObjectModel<Object[]>(object));
 				}
-			
-				public Iterator iterator(int first, int count) {
+
+				public Iterator<Object[]> iterator(int first, int count) {
 					Session sess =  Databinder.getHibernateSession();
 					long start = System.nanoTime();
 					try {
@@ -175,7 +184,7 @@ public class QueryPanel extends Panel {
 					}
 				}
 			};
-			IColumn[] columns;
+			IColumn<Object[]>[] columns;
 			Session sess =  Databinder.getHibernateSession();
 			Query q = sess.createQuery(query.getQuery());
 			String[] aliases;
@@ -186,60 +195,60 @@ public class QueryPanel extends Panel {
 			} catch (NullPointerException e) { // thrown on updates
 				return new Label("results", "");
 			}
-			
+
 			if (returnTypes.length != 1) {
 				columns = new IColumn[returnTypes.length];
 				for (int i = 0; i < returnTypes.length; i++) {
 					String alias = aliases == null || aliases.length <= i?returnTypes[i].getName():aliases[i];
 					final int index = i;
-					columns[i] = new AbstractColumn(new Model(alias)) {
+					columns[i] = new AbstractColumn<Object[]>(Model.of(alias)) {
 						private static final long serialVersionUID = 1L;
 
-						public void populateItem(Item cellItem, String componentId, IModel rowModel) {
-							Object[] objects = (Object[]) rowModel.getObject();
-							cellItem.add(new Label(componentId, 
-									new Model(objects[index]==null?"":objects[index].toString())));
+						public void populateItem(Item<ICellPopulator<Object[]>> cellItem, String componentId, IModel<Object[]> rowModel) {
+							Object[] objects = rowModel.getObject();
+							cellItem.add(new Label(componentId,
+							    Model.of(objects[index]==null?"":objects[index].toString())));
 						}
 					};
 				}
 			} else {
 				Type returnType = returnTypes[0];
 				if (returnType.isEntityType()) {
-					Class clss = returnType.getReturnedClass();
+					Class<?> clss = returnType.getReturnedClass();
 					ClassMetadata metadata = Databinder.getHibernateSessionFactory().getClassMetadata(clss);
-					List<IColumn> cols = new ArrayList<IColumn>();
+					List<IColumn<?>> cols = new ArrayList<IColumn<?>>();
 					String idProp = metadata.getIdentifierPropertyName();
-					cols.add(new PropertyColumn(new Model(idProp), idProp));
+					cols.add(new PropertyColumn<Object>(Model.of(idProp), idProp));
 					String[] properties = metadata.getPropertyNames();
 					for (String prop : properties) {
 						Type type = metadata.getPropertyType(prop);
 						if (type.isCollectionType()) {
 							// TODO: see if we could provide a link to the collection value
 						} else {
-							cols.add(new PropertyColumn(new Model(prop), prop));
+							cols.add(new PropertyColumn<Object>(Model.of(prop), prop));
 						}
 					}
-					columns = (IColumn[]) cols.toArray(new IColumn[cols.size()]);
+					columns = cols.toArray(new IColumn[cols.size()]);
 				} else {
 					String alias = aliases == null || aliases.length == 0?returnType.getName():aliases[0];
-					columns = new IColumn[] {new AbstractColumn(new Model(alias)) {
+					columns = new IColumn[] {new AbstractColumn<Object>(Model.of(alias)) {
 						private static final long serialVersionUID = 1L;
 
-						public void populateItem(Item cellItem, String componentId, IModel rowModel) {
+						public void populateItem(Item<ICellPopulator<Object>> cellItem, String componentId, IModel<Object> rowModel) {
 							cellItem.add(new Label(componentId, rowModel));
 						}
 					}};
 				}
 			}
-			DataTable dataTable = new DataTable("results", columns, dataProvider, 10);
-			
-			dataTable.addTopToolbar(new HeadersToolbar(dataTable, null));
-			dataTable.addBottomToolbar(new NavigationToolbar(dataTable));
+			DataTable<Object[]> dataTable = new DataTable<Object[]>("results", columns, dataProvider, 10);
+
+	    dataTable.addTopToolbar(new HeadersToolbar("headersToolbar", dataTable, dataProvider));
+			dataTable.addBottomToolbar(new NavigationToolbar("navigationToolbar", dataTable));
 			dataTable.setOutputMarkupId(true);
 			return dataTable;
 		}
 	}
-	
+
 	private static class QueryBean implements Serializable {
 		private static final long serialVersionUID = 1L;
 		private String query;
@@ -248,7 +257,8 @@ public class QueryPanel extends Panel {
 			return query;
 		}
 
-		public void setQuery(String query) {
+		@SuppressWarnings("unused")
+    public void setQuery(String query) {
 			this.query = query;
 		}
 	}

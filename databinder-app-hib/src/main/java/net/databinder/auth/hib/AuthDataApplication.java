@@ -6,12 +6,12 @@
  * modify it under the terms of the GNU Lesser General Public
  * License as published by the Free Software Foundation; either
  * version 2.1 of the License, or (at your option) any later version.
- * 
+ *
  * This library is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
  * Lesser General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
@@ -31,9 +31,6 @@ import net.databinder.hib.DataApplication;
 import net.databinder.hib.Databinder;
 
 import org.apache.wicket.Component;
-import org.apache.wicket.Request;
-import org.apache.wicket.RequestCycle;
-import org.apache.wicket.Response;
 import org.apache.wicket.RestartResponseAtInterceptPageException;
 import org.apache.wicket.Session;
 import org.apache.wicket.authorization.IUnauthorizedComponentInstantiationListener;
@@ -42,8 +39,11 @@ import org.apache.wicket.authorization.strategies.role.IRoleCheckingStrategy;
 import org.apache.wicket.authorization.strategies.role.RoleAuthorizationStrategy;
 import org.apache.wicket.authorization.strategies.role.Roles;
 import org.apache.wicket.markup.html.WebPage;
-import org.apache.wicket.protocol.http.WebRequest;
-import org.apache.wicket.util.crypt.Base64UrlSafe;
+import org.apache.wicket.protocol.http.servlet.ServletWebRequest;
+import org.apache.wicket.request.Request;
+import org.apache.wicket.request.Response;
+import org.apache.wicket.request.cycle.RequestCycle;
+import org.apache.wicket.util.crypt.Base64;
 import org.hibernate.cfg.AnnotationConfiguration;
 import org.hibernate.criterion.Restrictions;
 
@@ -52,7 +52,7 @@ import org.hibernate.criterion.Restrictions;
  * of Wicket's AuthenticatedWebApplication, brought into the DataApplication hierarchy
  * and including light user specifications in DataUser. You are encouraged to override
  * getUserClass() to implement your own user entity, possibly by extending UserBase.
- * It is also possible to use Databinder authentication without extending this base class 
+ * It is also possible to use Databinder authentication without extending this base class
  * by implementing IAuthSettings.
  * <p>Text appearing in authentication components can be overriden for any language, using
  * resource keys listed in their documentation. Except as otherwise noted, these resources
@@ -62,8 +62,8 @@ import org.hibernate.criterion.Restrictions;
  * @see DataUser
  * @author Nathan Hamblen
  */
-public abstract class AuthDataApplication extends DataApplication 
-implements IUnauthorizedComponentInstantiationListener, IRoleCheckingStrategy, AuthApplication {
+public abstract class AuthDataApplication extends DataApplication
+implements IUnauthorizedComponentInstantiationListener, IRoleCheckingStrategy, AuthApplication<DataUser> {
 
 	/**
 	 * Internal initialization. Client applications should not normally override
@@ -74,9 +74,9 @@ implements IUnauthorizedComponentInstantiationListener, IRoleCheckingStrategy, A
 		super.internalInit();
 		authInit();
 	}
-	
+
 	/**
-	 * Sets Wicket's security strategy for role authorization and appoints this 
+	 * Sets Wicket's security strategy for role authorization and appoints this
 	 * object as the unauthorized instatiation listener. Called automatically on start-up.
 	 */
 	protected void authInit() {
@@ -90,7 +90,7 @@ implements IUnauthorizedComponentInstantiationListener, IRoleCheckingStrategy, A
 	 */
 	@Override
 	public Session newSession(Request request, Response response) {
-		return new AuthDataSession(request);
+		return new AuthDataSession<DataUser>(request);
 	}
 	/**
 	 * Adds to the configuration whatever DataUser class is defined.
@@ -100,24 +100,24 @@ implements IUnauthorizedComponentInstantiationListener, IRoleCheckingStrategy, A
 		super.configureHibernate(config);
 		config.addAnnotatedClass(getUserClass());
 	}
-	
+
 	/**
 	 * Sends to sign in page if not signed in, otherwise throws UnauthorizedInstantiationException.
 	 */
-	public void onUnauthorizedInstantiation(Component component) {
-		if (((AuthSession)Session.get()).isSignedIn()) {
+  public void onUnauthorizedInstantiation(Component component) {
+		if (((AuthSession<?>)Session.get()).isSignedIn()) {
 			throw new UnauthorizedInstantiationException(component.getClass());
 		}
 		else {
 			throw new RestartResponseAtInterceptPageException(getSignInPageClass());
-		}	
+		}
 	}
-	
+
 	/**
 	 * Passes query on to the DataUser object if signed in.
 	 */
 	public final boolean hasAnyRole(Roles roles) {
-		DataUser user = ((AuthSession)Session.get()).getUser();
+		DataUser user = ((AuthSession<?>)Session.get()).getUser();
 		if (user != null)
 			for (String role : roles)
 				if (user.hasRole(role))
@@ -128,7 +128,7 @@ implements IUnauthorizedComponentInstantiationListener, IRoleCheckingStrategy, A
 	/**
 	 * Return user object by matching against a "username" property. Override
 	 * if you have a differently named property.
-	 * @return DataUser for the given username. 
+	 * @return DataUser for the given username.
 	 */
 	public DataUser getUser(String username) {
 		return (DataUser) Databinder.getHibernateSession().createCriteria(getUserClass())
@@ -142,9 +142,9 @@ implements IUnauthorizedComponentInstantiationListener, IRoleCheckingStrategy, A
 	public Class< ? extends WebPage> getSignInPageClass() {
 		return DataSignInPage.class;
 	}
-	
+
 	/**
-	 * @return app-salted MessageDigest.  
+	 * @return app-salted MessageDigest.
 	 */
 	public MessageDigest getDigest() {
 		try {
@@ -165,7 +165,8 @@ implements IUnauthorizedComponentInstantiationListener, IRoleCheckingStrategy, A
 	 * @return restricted token
 	 */
 	public String getToken(DataUser user) {
-		HttpServletRequest req = ((WebRequest) RequestCycle.get().getRequest()).getHttpServletRequest();
+		HttpServletRequest req = ((ServletWebRequest) RequestCycle.get().getRequest())
+		  .getHttpServletRequest();
 		String fwd = req.getHeader("X-Forwarded-For");
 		if (fwd == null)
 			fwd = "nil";
@@ -173,6 +174,6 @@ implements IUnauthorizedComponentInstantiationListener, IRoleCheckingStrategy, A
 		user.getPassword().update(digest);
 		digest.update((fwd + "-" + req.getRemoteAddr()).getBytes());
 		byte[] hash = digest.digest(user.getUsername().getBytes());
-		return new String(Base64UrlSafe.encodeBase64(hash));
+		return new String(Base64.encodeBase64(hash));
 	}
 }
